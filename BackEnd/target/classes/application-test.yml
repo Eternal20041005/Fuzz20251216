@@ -1,0 +1,47 @@
+# 测试环境配置 - 使用H2内存数据库
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: fuzz-backend
+  
+  # 使用H2内存数据库进行快速测试
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  # JPA 配置
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.SnakeCasePhysicalNamingStrategy
+    show-sql: true
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    
+  # SQL 初始化
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:test-data.sql
+
+  # H2 控制台（用于调试）
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+logging:
+  level:
+    com.fuzz: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>参数敏感数据库模糊测试平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'header-sidebar': '#3E92CC',
+              'sidebar-item': '#0A2463',
+              'table-border': '#000000',
+            },
+            fontFamily: {
+              sans: ['Microsoft YaHei', 'Arial', 'sans-serif'],
+            },
+          },
+        },
+      }
+    </script>
+    <style type="text/tailwindcss">
+      @layer utilities {
+        .content-auto { content-visibility: auto; }
+        .sidebar-active { background-color: theme('colors.sidebar-item'); color: white; font-weight: bold; }
+        .sidebar-inactive { background-color: theme('colors.header-sidebar'); color: black; }
+        .sidebar-inactive:hover { background-color: #347daf; }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-BW6nKnm0.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-4tnSlLfM.css">
+  </head>
+  <body class="bg-gray-100 min-h-screen">
+    <div id="app"></div>
+  </body>
+</html>
+

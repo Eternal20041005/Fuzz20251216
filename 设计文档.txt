@@ -1,0 +1,453 @@
+一、 模糊测试设置页面
+【页面布局】
+
+【功能介绍】
+表单项
+
+输入格式
+
+合法值
+
+说明
+
+Oracle
+
+下拉框
+
+TLP、NoREC、PQS
+
+最大表达式深度
+
+整数
+
+默认 3
+
+尝试次数
+
+整数
+
+默认 100
+
+超时时间（秒）
+
+整数
+
+默认 30
+
+随机种子
+
+长整数
+
+留空或长整数
+
+查询数量
+
+整数
+
+默认 10000
+
+最大插入数量
+
+整数
+
+最大生成数据库数
+
+整数
+
+用户名
+
+Text
+
+密码
+
+Text
+
+主机
+
+Text
+
+端口
+
+Text
+
+留空则系统自动生
+成，如复现 bug，需
+填写相同种子值
+
+1） 点击“保存配置”后，验证输入合法性，将配置保存到数据库；点击“重置默认” 按钮，恢
+复列表状态。
+2） 若当前正在测试，修改配置后点击“保存配置“，弹窗”已保存配置，重启测试生效“。
+【数据库表】
+表名：fuzz_config
+字段名
+
+类型
+
+描述
+
+test_oracle
+
+VARCHAR(50)
+
+测试 Oracle 类型
+
+max_expr_depth
+
+INT
+
+最大表达式深度
+
+max_retries
+
+INT
+
+尝试次数
+
+timeout_seconds
+
+INT
+
+超时时间（秒）
+
+random_seed
+
+BIGINT
+
+随机种子
+
+max_queries
+
+INT
+
+查询数量
+
+max_insert_rows
+
+INT
+
+最大插入数量
+
+max_data_ordinal
+
+INT
+
+最大生成数据库数
+
+db_username
+
+VARCHAR(100)
+
+数据库用户名
+
+db_password
+
+VARCHAR(500)
+
+数据库密码
+
+db_host
+
+VARCHAR(100)
+
+数据库主机
+
+db_port
+
+INT
+
+数据库端口
+
+二、 数据库参数设置页面
+【页面布局】
+
+【功能介绍】
+此页面功能配置目标数据库的系统参数，为测试用例执行提供前置条件。该功能模块需
+要面向用户实现以下几个功能：
+1） 测试开始前，上层状态栏均为默认值“无”或“0”，测试开始后，实时显示。
+2） “请选择测试的数据库”下拉框中提供具体的数据库名和版本号，如 MySQL（v9.5.0）、
+MySQL（v9.4.0）
+、PostgreSQL（v19）
+、PostgreSQL（v18）
+、MariaDB（v 11.8 LTS）
+、MariaDB
+（v 11.7 LTS）
+、OceanBase（v4.4）
+、OceanBase（v4.3）
+、TiDB（v7.5.7）
+、TiDB（v7.5.6）
+，
+3） 选择后自动加载该数据库的默认参数列表。
+4） 列表支持筛选功能，默认按照权重值从高到低排序。
+5） 点击 “保存配置” 按钮，将配置保存至数据库；点击“恢复默认” 按钮，恢复列表状态。
+6） 选择不同数据库时，参数列表实时刷新，避免跨数据库参数混淆；参数值输入错误时，
+弹出提示框（如 “布尔型参数仅支持 ON/OFF”）
+。
+7） 若当前正在测试，修改配置后点击“保存配置“，弹窗”已保存配置，重启测试生效“。
+【数据库表】
+表名：db_parameter
+字段名
+
+类型
+
+含义
+
+db_type
+
+VARCHAR(20)
+
+数据库类型
+
+param_name
+
+VARCHAR(100)
+
+参数名称
+
+param_type
+
+VARCHAR(20)
+
+参数类型
+
+description
+
+TEXT
+
+参数描述
+
+default_value
+
+VARCHAR(255)
+
+参数默认值
+
+value_range
+
+VARCHAR(500)
+
+参数取值范围/选项
+
+weight
+
+DECIMAL(10,4)
+
+参数权重
+
+Is_test
+
+BOOLEAN
+
+是否测试
+
+三、 状态监测页面
+【页面布局】
+
+【功能介绍】
+1） 点击右上角“开始测试“按钮，后端根据数据库中的配置开始测试，若报错，则报错信息
+返回至前端，重新修改配置。
+2） 开启模糊测试后，Fuzzer 在执行过程中将状态信息输出到数据库中，不断更新数据库的
+内容，web 后端从数据库定时读取数据通过 websocket 传输到前端进行前端 vuex 中的
+数据的实时更新，包括页面上方的状态栏。若未开始测试，状态栏为默认值“无”、“0”。
+3） 点击“结束测试“按钮，向后端发送请求，等待后端响应后再停止 websocket 连接。
+4） 取消对“权重值“的操作功能，排序按照权重值从高到低。
+【数据库表】
+表名：test_status
+字段名
+
+类型
+
+描述
+
+task_status
+
+VARCHAR(20)
+
+任务状态
+
+test_oracle
+
+VARCHAR(50)
+
+测试 Oracle
+
+run_time
+
+INT
+
+测试时间
+
+coverage_rate
+
+DECIMAL(5,2)
+
+覆盖率
+
+bug_count
+
+INT
+
+Bug 数量
+
+execution_count
+
+INT
+
+执行次数
+
+current_param_combo
+
+VARCHAR(500)/JSON
+
+当前正在测试的参数组合
+
+throughput
+
+DECIMAL(8,2)
+
+吞吐量
+
+字段名
+
+类型
+
+描述
+
+param_name
+
+VARCHAR(500)
+
+参数组合名
+
+weight_value
+
+DECIMAL(10,4)
+
+权重值
+
+表名：param_combo_weight
+
+四、 测试用例页面
+【页面布局】
+
+【功能介绍】
+1） 此页面展示所有经过测试的测试用例，测试用例中包含测试时间、Oracle、参数组合（参
+数组合直接显示参数，不设按钮）
+、权重值、SQL 语句、是否触发漏洞和 bug id（若触发
+漏洞则显示）
+。
+2） 测试用例筛选器可以进行筛选功能，“是否触发漏洞“可选”所有“、”是“、”否“；还可以根
+据参数名和值进行筛选。
+3） 点击“测试用例“页面自动进行页面更新，按照时间倒序排列。
+【数据库表】
+表名：test_case
+字段名
+
+类型
+
+描述
+
+test_time
+
+VARCHAR(20)
+
+测试时间
+
+case_id
+
+VARCHAR(36)
+
+测试用例 id
+
+target_db
+
+VARCHAR(20)
+
+目标数据库及版本
+
+oracle_type
+
+VARCHAR(50)
+
+Oracle 类型
+
+triggered_bug
+
+BOOLEAN
+
+是否触发漏洞
+
+bug_id
+
+VARCHAR(50)
+
+关联 bugid（如果触发漏洞）
+
+param_combo
+
+VARCHAR(500)/JSON
+
+参数组合
+
+weight_value
+
+DECIMAL(10,4)
+
+权重值
+
+sql_statement
+
+TEXT/JSON
+
+SQL 语句
+
+五、 测试报告页面
+【页面布局】
+
+【功能介绍】
+1）此页面展示测试结束后的测试报告，待测试结束后，读取数据库中 test_status 的信息
+2）点击“导出 pdf”可以导出 pdf 报告
+【数据库表】
+表名：test_status
+字段名
+
+类型
+
+描述
+
+test_oracle
+
+VARCHAR(50)
+
+测试 Oracle
+
+run_time
+
+INT
+
+测试时间
+
+coverage_rate
+
+DECIMAL(5,2)
+
+覆盖率
+
+bug_count
+
+INT
+
+Bug 数量
+
+execution_count
+
+INT
+
+执行次数
+
+throughput
+
+DECIMAL(8,2)
+
+吞吐量
+
+

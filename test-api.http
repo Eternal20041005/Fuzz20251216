@@ -1,0 +1,48 @@
+# API测试文件
+# 可以使用VS Code的REST Client插件或Postman执行
+
+### 1. 测试健康检查
+GET http://localhost:8080/api/health
+
+### 2. 获取数据库配置列表
+GET http://localhost:8080/api/database-configs
+
+### 3. 获取参数列表（第一页）
+GET http://localhost:8080/api/parameters?page=0&size=10
+
+### 4. 搜索参数
+GET http://localhost:8080/api/parameters?search=max&page=0&size=10
+
+### 5. 按类别过滤参数
+GET http://localhost:8080/api/parameters?category=CONNECTION&page=0&size=10
+
+### 6. 获取所有参数类别
+GET http://localhost:8080/api/parameters/categories
+
+### 7. 测试数据库连接（需要先有数据库配置）
+POST http://localhost:8080/api/database-configs/1/test-connection
+
+### 8. 从数据库导入参数（需要先有数据库配置）
+POST http://localhost:8080/api/parameters/import/1
+
+### 9. 更新参数
+PUT http://localhost:8080/api/parameters/1
+Content-Type: application/json
+
+{
+  "defaultValue": "200",
+  "isTestDefault": true,
+  "description": "更新后的最大连接数"
+}
+
+### 10. 创建新的数据库配置
+POST http://localhost:8080/api/database-configs
+Content-Type: application/json
+
+{
+  "name": "新测试数据库",
+  "dbType": "MySQL",
+  "connectionUrl": "jdbc:mysql://localhost:3306/test",
+  "username": "testuser",
+  "password": "testpass"
+}

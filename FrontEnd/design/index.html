@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>参数敏感数据库模糊测试平台</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+
+    <!-- Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'header-sidebar': '#3E92CC', // 浅蓝色标题栏和侧边栏
+                        'sidebar-item': '#0A2463',  // 深蓝色侧边栏选项块
+                        'table-border': '#000000',  // 表格边框黑色
+                    },
+                    fontFamily: {
+                        sans: ['Microsoft YaHei', 'Arial', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .sidebar-active {
+                background-color: theme('colors.sidebar-item');
+                color: white;
+                font-weight: bold;
+            }
+            .sidebar-inactive {
+                background-color: theme('colors.header-sidebar');
+                color: black;
+            }
+            .sidebar-inactive:hover {
+                background-color: #347daf;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <!-- 主容器 -->
+    <div class="flex flex-col h-screen">
+        <!-- 标题栏 -->
+        <header class="bg-header-sidebar text-white p-4 flex items-center justify-between">
+            <h1 class="text-2xl font-bold">参数敏感数据库模糊测试平台</h1>
+            <div class="text-right">
+                <div>SQLancer</div>
+                <div class="text-sm">版本 1.0</div>
+            </div>
+        </header>
+
+        <!-- 主体内容 -->
+        <div class="flex flex-1 overflow-hidden">
+            <!-- 侧边栏导航 -->
+            <aside class="bg-header-sidebar w-64 flex-shrink-0">
+                <nav class="py-4">
+                    <ul>
+                        <li>
+                            <button id="test-settings-btn" class="w-full text-left p-4 sidebar-active">
+                                <i class="fa fa-sliders mr-2"></i> 测试设置
+                            </button>
+                        </li>
+                        <li>
+                            <button id="status-info-btn" class="w-full text-left p-4 sidebar-inactive">
+                                <i class="fa fa-dashboard mr-2"></i> 状态信息
+                            </button>
+                        </li>
+                        <li>
+                            <button id="test-report-btn" class="w-full text-left p-4 sidebar-inactive">
+                                <i class="fa fa-file-text mr-2"></i> 测试报告
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </aside>
+
+            <!-- 主内容区域 -->
+            <main class="flex-1 overflow-auto p-6">
+                <!-- 测试设置页面 -->
+                <div id="test-settings-panel" class="space-y-6">
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                        <div class="p-6">
+                            <h2 class="text-xl font-bold mb-6">测试设置</h2>
+
+                            <!-- 子页面导航 -->
+                            <div class="border-b-2 border-gray-200 mb-6">
+                                <button id="db-params-tab"
+                                    class="px-4 py-2 text-blue-700 border-b-2 border-blue-700 font-medium">
+                                    数据库参数
+                                </button>
+                                <button id="fuzz-params-tab" class="px-4 py-2 text-gray-500 font-medium">
+                                    模糊测试参数
+                                </button>
+                            </div>
+
+                            <!-- 数据库参数子页面 -->
+                            <div id="db-params-panel">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium mb-2">选择数据库</label>
+                                    <select id="database-select" class="w-full p-2 border border-gray-300 rounded">
+                                        <option value="mysql">MySQL</option>
+                                        <option value="postgresql">PostgreSQL</option>
+                                        <option value="oracle">Oracle</option>
+                                        <option value="sqlserver">SQL Server</option>
+                                    </select>
+                                </div>
+
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full border-2 border-table-border">
+                                        <thead>
+                                            <tr class="bg-gray-100">
+                                                <th class="py-2 px-4 border border-table-border text-left">参数名</th>
+                                                <th class="py-2 px-4 border border-table-border text-left">默认值</th>
+                                                <th class="py-2 px-4 border border-table-border text-center">是否测试</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="database-params-table">
+                                            <!-- 数据库参数会通过JavaScript动态填充 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- 模糊测试参数子页面 -->
+                            <div id="fuzz-params-panel" class="hidden">
+                                <div class="space-y-6">
+                                    <!-- 基础参数 -->
+                                    <div>
+                                        <h3 class="text-lg font-semibold mb-4">基础参数</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">测试Oracle</label>
+                                                <select id="test-oracle"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                                    <option value="TLP">TLP (Test Language Platform)</option>
+                                                    <option value="RBR">RBR (Result Set Comparison)</option>
+                                                    <option value="CBR">CBR (Coverage-Based Routing)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">并行线程数</label>
+                                                <input type="number" id="num-threads" value="16" min="1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">随机种子</label>
+                                                <input type="number" id="random-seed" value="-1" min="-1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">最大表达式深度</label>
+                                                <input type="number" id="max-expression-depth" value="3" min="1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">查询数量</label>
+                                                <input type="number" id="num-queries" value="100000" min="1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">最大插入数量</label>
+                                                <input type="number" id="max-num-inserts" value="30" min="1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">尝试次数</label>
+                                                <input type="number" id="num-tries" value="100" min="1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">超时时间(秒)</label>
+                                                <input type="number" id="timeout-seconds" value="-1" min="-1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">最大生成数据库数</label>
+                                                <input type="number" id="max-generated-databases" value="-1" min="-1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">最大字符串长度</label>
+                                                <input type="number" id="max-string-length" value="10" min="1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">常量缓存大小</label>
+                                                <input type="number" id="constant-cache-size" value="100" min="1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- QPG参数 -->
+                                    <div class="border-t-2 border-gray-200 pt-4">
+                                        <div class="flex items-center mb-4">
+                                            <input type="checkbox" id="qpg-enable" class="mr-2">
+                                            <h3 class="text-lg font-semibold">启用QPG (Query Plan Guidance)</h3>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="qpg-log-query-plan" disabled class="mr-2">
+                                                <label class="text-sm font-medium">记录查询计划</label>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">最大间隔</label>
+                                                <input type="number" id="qpg-max-interval" value="1000" min="1" disabled
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">奖励权重</label>
+                                                <input type="number" id="qpg-reward-weight" value="0.25" min="0" max="1"
+                                                    step="0.01" disabled
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">选择概率</label>
+                                                <input type="number" id="qpg-selection-probability" value="0.7" min="0"
+                                                    max="1" step="0.01" disabled
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 数据库登录凭据 -->
+                                    <div class="border-t-2 border-gray-200 pt-4">
+                                        <h3 class="text-lg font-semibold mb-4">数据库登录凭据</h3>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">用户名</label>
+                                                <input type="text" id="username" value="sqlancer"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">密码</label>
+                                                <input type="password" id="password" value="sqlancer"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">主机</label>
+                                                <input type="text" id="host" placeholder="localhost"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-2">端口</label>
+                                                <input type="number" id="port" value="-1" min="-1"
+                                                    class="w-full p-2 border border-gray-300 rounded">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 额外选项 -->
+                                    <div class="border-t-2 border-gray-200 pt-4">
+                                        <h3 class="text-lg font-semibold mb-4">额外选项</h3>
+                                        <div class="space-y-2">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="log-each-select" checked class="mr-2">
+                                                <label class="text-sm font-medium">记录每个SELECT语句</label>
+                                            </div>
+                                            <div class="flex items-center pl-6">
+                                                <input type="checkbox" id="log-execution-time" checked class="mr-2">
+                                                <label class="text-sm font-medium">记录执行时间</label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="print-failed" checked class="mr-2">
+                                                <label class="text-sm font-medium">打印失败的语句</label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="print-progress-info" checked class="mr-2">
+                                                <label class="text-sm font-medium">打印进度信息</label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="print-statements" class="mr-2">
+                                                <label class="text-sm font-medium">打印所有语句</label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="test-only-nonempty" class="mr-2">
+                                                <label class="text-sm font-medium">仅测试非空表</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center p-6">
+                            <button id="start-test-btn"
+                                class="bg-blue-600 text-white font-bold py-2 px-6 rounded hover:bg-blue-700 transition-all">
+                                开始测试
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 状态信息页面 -->
+                <div id="status-info-panel" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 数据库信息 -->
+                        <div class="bg-white rounded-lg shadow-md p-6 border-2 border-table-border">
+                            <h2 class="text-lg font-bold mb-4">数据库信息</h2>
+                            <div class="space-y-2">
+                                <div class="flex">
+                                    <span class="font-semibold w-24">数据库：</span>
+                                    <span id="db-name">MySQL</span>
+                                </div>
+                                <div class="flex">
+                                    <span class="font-semibold w-24">版本：</span>
+                                    <span id="db-version">8.0.26</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 测试状态信息 -->
+                        <div class="bg-white rounded-lg shadow-md p-6 border-2 border-table-border">
+                            <h2 class="text-lg font-bold mb-4">测试状态信息</h2>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">测试Oracle：</span>
+                                    <span id="test-oracle-status">TLP</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">Bug数量：</span>
+                                    <span id="bug-count">15</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">测试线程数：</span>
+                                    <span id="thread-count">3</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">吞吐量：</span>
+                                    <span id="throughput">120 qps</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">测试时间：</span>
+                                    <span id="test-time">2h 30m</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-semibold">执行次数：</span>
+                                    <span id="exec-count">1,258,390</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 覆盖率变化曲线 -->
+                    <div class="bg-white rounded-lg shadow-md p-6 border-2 border-table-border">
+                        <h2 class="text-lg font-bold mb-4 text-center">覆盖率变化曲线</h2>
+                        <div class="h-80">
+                            <canvas id="coverage-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 测试报告页面 -->
+                <div id="test-report-panel" class="hidden">
+                    <div class="bg-white rounded-lg shadow-md p-6 border-2 border-table-border">
+                        <h2 class="text-lg font-bold mb-4">Bug列表</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full border-2 border-table-border">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="py-2 px-4 border border-table-border text-left">Bug Id</th>
+                                        <th class="py-2 px-4 border border-table-border text-left">类型（崩溃、逻辑）</th>
+                                        <th class="py-2 px-4 border border-table-border text-left">目标数据库</th>
+                                        <th class="py-2 px-4 border border-table-border text-left">Oracle</th>
+                                        <th class="py-2 px-4 border border-table-border text-left">参数设置</th>
+                                        <th class="py-2 px-4 border border-table-border text-left">测试样例</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="py-2 px-4 border border-table-border">1</td>
+                                        <td class="py-2 px-4 border border-table-border">崩溃</td>
+                                        <td class="py-2 px-4 border border-table-border">MySQL</td>
+                                        <td class="py-2 px-4 border border-table-border">TLP</td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-params-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-example-btn bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="bg-gray-50">
+                                        <td class="py-2 px-4 border border-table-border">2</td>
+                                        <td class="py-2 px-4 border border-table-border">逻辑</td>
+                                        <td class="py-2 px-4 border border-table-border">PostgreSQL</td>
+                                        <td class="py-2 px-4 border border-table-border">RBR</td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-params-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-example-btn bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-4 border border-table-border">3</td>
+                                        <td class="py-2 px-4 border border-table-border">崩溃</td>
+                                        <td class="py-2 px-4 border border-table-border">Oracle</td>
+                                        <td class="py-2 px-4 border border-table-border">CBR</td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-params-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-example-btn bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="bg-gray-50">
+                                        <td class="py-2 px-4 border border-table-border">4</td>
+                                        <td class="py-2 px-4 border border-table-border">逻辑</td>
+                                        <td class="py-2 px-4 border border-table-border">MySQL</td>
+                                        <td class="py-2 px-4 border border-table-border">TLP</td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-params-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-example-btn bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 px-4 border border-table-border">5</td>
+                                        <td class="py-2 px-4 border border-table-border">崩溃</td>
+                                        <td class="py-2 px-4 border border-table-border">SQL Server</td>
+                                        <td class="py-2 px-4 border border-table-border">RBR</td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-params-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                        <td class="py-2 px-4 border border-table-border">
+                                            <button
+                                                class="show-example-btn bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition-all">
+                                                显示代码 <i class="fa fa-eye ml-1"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 代码显示折叠面板 -->
+    <div id="code-collapse-panel"
+        class="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-table-border rounded-t-lg shadow-lg hidden">
+        <div class="flex justify-between items-center p-4 cursor-pointer" id="collapse-header">
+            <h3 class="text-lg font-bold" id="collapse-title">参数设置</h3>
+            <button id="close-collapse" class="text-gray-500 hover:text-gray-700">
+                <i class="fa fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-4 max-h-96 overflow-auto">
+            <pre id="collapse-content" class="bg-gray-100 p-4 rounded"></pre>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // 获取DOM元素
+            const testSettingsBtn = document.getElementById('test-settings-btn');
+            const statusInfoBtn = document.getElementById('status-info-btn');
+            const testReportBtn = document.getElementById('test-report-btn');
+            const testSettingsPanel = document.getElementById('test-settings-panel');
+            const statusInfoPanel = document.getElementById('status-info-panel');
+            const testReportPanel = document.getElementById('test-report-panel');
+            const databaseSelect = document.getElementById('database-select');
+            const databaseParamsTable = document.getElementById('database-params-table');
+            const startTestBtn = document.getElementById('start-test-btn');
+            const codeCollapsePanel = document.getElementById('code-collapse-panel');
+            const collapseHeader = document.getElementById('collapse-header');
+            const collapseTitle = document.getElementById('collapse-title');
+            const collapseContent = document.getElementById('collapse-content');
+            const closeCollapse = document.getElementById('close-collapse');
+
+            // 数据库参数示例数据
+            const databaseParams = {
+                mysql: [
+                    { name: 'max_connections', defaultValue: '151', isTested: true },
+                    { name: 'wait_timeout', defaultValue: '28800', isTested: true },
+                    { name: 'innodb_buffer_pool_size', defaultValue: '134217728', isTested: true },
+                    { name: 'max_allowed_packet', defaultValue: '4194304', isTested: true },
+                    { name: 'tmp_table_size', defaultValue: '16777216', isTested: false },
+                    { name: 'key_buffer_size', defaultValue: '8388608', isTested: false },
+                    { name: 'query_cache_size', defaultValue: '0', isTested: true },
+                    { name: 'thread_cache_size', defaultValue: '8', isTested: false },
+                    { name: 'sort_buffer_size', defaultValue: '262144', isTested: true },
+                    { name: 'read_buffer_size', defaultValue: '131072', isTested: false }
+                ],
+                postgresql: [
+                    { name: 'max_connections', defaultValue: '100', isTested: true },
+                    { name: 'shared_buffers', defaultValue: '128MB', isTested: true },
+                    { name: 'work_mem', defaultValue: '4MB', isTested: true },
+                    { name: 'maintenance_work_mem', defaultValue: '64MB', isTested: false },
+                    { name: 'effective_cache_size', defaultValue: '4GB', isTested: true },
+                    { name: 'checkpoint_completion_target', defaultValue: '0.5', isTested: false },
+                    { name: 'wal_buffers', defaultValue: '16MB', isTested: true },
+                    { name: 'default_statistics_target', defaultValue: '100', isTested: false }
+                ],
+                oracle: [
+                    { name: 'open_cursors', defaultValue: '300', isTested: true },
+                    { name: 'processes', defaultValue: '300', isTested: true },
+                    { name: 'sessions', defaultValue: '472', isTested: false },
+                    { name: 'pga_aggregate_target', defaultValue: '200M', isTested: true },
+                    { name: 'sga_target', defaultValue: '800M', isTested: true },
+                    { name: 'db_cache_size', defaultValue: '0', isTested: false },
+                    { name: 'shared_pool_size', defaultValue: '0', isTested: true },
+                    { name: 'log_buffer', defaultValue: '0', isTested: false }
+                ],
+                sqlserver: [
+                    { name: 'max server memory (MB)', defaultValue: '2147483647', isTested: true },
+                    { name: 'min server memory (MB)', defaultValue: '0', isTested: false },
+                    { name: 'max degree of parallelism', defaultValue: '0', isTested: true },
+                    { name: 'cost threshold for parallelism', defaultValue: '5', isTested: false },
+                    { name: 'optimize for ad hoc workloads', defaultValue: '0', isTested: true },
+                    { name: 'tempdb files', defaultValue: '8', isTested: false },
+                    { name: 'backup compression default', defaultValue: '0', isTested: true }
+                ]
+            };
+
+            // 页面切换函数
+            function switchPanel(activeBtn) {
+                // 重置所有按钮样式
+                [testSettingsBtn, statusInfoBtn, testReportBtn].forEach(btn => {
+                    btn.classList.remove('sidebar-active');
+                    btn.classList.add('sidebar-inactive');
+                });
+
+                // 隐藏所有面板
+                [testSettingsPanel, statusInfoPanel, testReportPanel].forEach(panel => {
+                    panel.classList.add('hidden');
+                });
+
+                // 激活当前按钮和面板
+                activeBtn.classList.remove('sidebar-inactive');
+                activeBtn.classList.add('sidebar-active');
+
+                if (activeBtn === testSettingsBtn) {
+                    testSettingsPanel.classList.remove('hidden');
+                } else if (activeBtn === statusInfoBtn) {
+                    statusInfoPanel.classList.remove('hidden');
+                    // 初始化覆盖率图表
+                    initCoverageChart();
+                } else if (activeBtn === testReportBtn) {
+                    testReportPanel.classList.remove('hidden');
+                }
+            }
+
+            // 数据库参数切换函数
+            function updateDatabaseParams(database) {
+                const params = databaseParams[database] || [];
+                databaseParamsTable.innerHTML = '';
+
+                params.forEach(param => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="py-2 px-4 border border-table-border">${param.name}</td>
+                        <td class="py-2 px-4 border border-table-border">${param.defaultValue}</td>
+                        <td class="py-2 px-4 border border-table-border text-center">
+                            <input type="checkbox" ${param.isTested ? 'checked' : ''}>
+                        </td>
+                    `;
+                    databaseParamsTable.appendChild(row);
+                });
+            }
+
+            // 初始化覆盖率图表
+            function initCoverageChart() {
+                const ctx = document.getElementById('coverage-chart').getContext('2d');
+
+                // 如果图表已经存在，则销毁它
+                if (window.coverageChart) {
+                    window.coverageChart.destroy();
+                }
+
+                // 创建新图表
+                window.coverageChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['0h', '0.5h', '1h', '1.5h', '2h', '2.5h', '3h'],
+                        datasets: [{
+                            label: '代码覆盖率',
+                            data: [10, 25, 42, 58, 65, 72, 80],
+                            borderColor: '#3E92CC',
+                            backgroundColor: 'rgba(62, 146, 204, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function (value) {
+                                        return value + '%';
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: '覆盖率 (%)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '测试时间'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return `覆盖率: ${context.parsed.y}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 添加事件监听器
+            testSettingsBtn.addEventListener('click', () => switchPanel(testSettingsBtn));
+            statusInfoBtn.addEventListener('click', () => switchPanel(statusInfoBtn));
+            testReportBtn.addEventListener('click', () => switchPanel(testReportBtn));
+
+            // 子页面切换逻辑
+            const dbParamsTab = document.getElementById('db-params-tab');
+            const fuzzParamsTab = document.getElementById('fuzz-params-tab');
+            const dbParamsPanel = document.getElementById('db-params-panel');
+            const fuzzParamsPanel = document.getElementById('fuzz-params-panel');
+
+            dbParamsTab.addEventListener('click', function () {
+                dbParamsTab.classList.add('text-blue-700', 'border-b-2', 'border-blue-700');
+                dbParamsTab.classList.remove('text-gray-500');
+                fuzzParamsTab.classList.remove('text-blue-700', 'border-b-2', 'border-blue-700');
+                fuzzParamsTab.classList.add('text-gray-500');
+                dbParamsPanel.classList.remove('hidden');
+                fuzzParamsPanel.classList.add('hidden');
+            });
+
+            fuzzParamsTab.addEventListener('click', function () {
+                fuzzParamsTab.classList.add('text-blue-700', 'border-b-2', 'border-blue-700');
+                fuzzParamsTab.classList.remove('text-gray-500');
+                dbParamsTab.classList.remove('text-blue-700', 'border-b-2', 'border-blue-700');
+                dbParamsTab.classList.add('text-gray-500');
+                fuzzParamsPanel.classList.remove('hidden');
+                dbParamsPanel.classList.add('hidden');
+            });
+
+            databaseSelect.addEventListener('change', (e) => updateDatabaseParams(e.target.value));
+
+            // QPG参数联动逻辑
+            const qpgEnable = document.getElementById('qpg-enable');
+            const qpgLogQueryPlan = document.getElementById('qpg-log-query-plan');
+            const qpgMaxInterval = document.getElementById('qpg-max-interval');
+            const qpgRewardWeight = document.getElementById('qpg-reward-weight');
+            const qpgSelectionProbability = document.getElementById('qpg-selection-probability');
+
+            qpgEnable.addEventListener('change', function () {
+                const isEnabled = this.checked;
+                qpgLogQueryPlan.disabled = !isEnabled;
+                qpgMaxInterval.disabled = !isEnabled;
+                qpgRewardWeight.disabled = !isEnabled;
+                qpgSelectionProbability.disabled = !isEnabled;
+            });
+
+            // 日志相关选项联动逻辑
+            const logEachSelect = document.getElementById('log-each-select');
+            const logExecutionTime = document.getElementById('log-execution-time');
+
+            logEachSelect.addEventListener('change', function () {
+                logExecutionTime.disabled = !this.checked;
+                if (!this.checked) {
+                    logExecutionTime.checked = false;
+                }
+            });
+
+            // 开始测试按钮逻辑
+            startTestBtn.addEventListener('click', function () {
+                // 收集所有参数
+                const params = {
+                    database: databaseSelect.value,
+                    testOracle: document.getElementById('test-oracle').value,
+                    numThreads: document.getElementById('num-threads').value,
+                    randomSeed: document.getElementById('random-seed').value,
+                    maxExpressionDepth: document.getElementById('max-expression-depth').value,
+                    numQueries: document.getElementById('num-queries').value,
+                    maxNumInserts: document.getElementById('max-num-inserts').value,
+                    numTries: document.getElementById('num-tries').value,
+                    timeoutSeconds: document.getElementById('timeout-seconds').value,
+                    maxGeneratedDatabases: document.getElementById('max-generated-databases').value,
+                    maxStringLength: document.getElementById('max-string-length').value,
+                    constantCacheSize: document.getElementById('constant-cache-size').value,
+                    qpgEnabled: qpgEnable.checked,
+                    qpgLogQueryPlan: qpgLogQueryPlan.checked,
+                    qpgMaxInterval: qpgMaxInterval.value,
+                    qpgRewardWeight: qpgRewardWeight.value,
+                    qpgSelectionProbability: qpgSelectionProbability.value,
+                    username: document.getElementById('username').value,
+                    password: document.getElementById('password').value,
+                    host: document.getElementById('host').value,
+                    port: document.getElementById('port').value,
+                    logEachSelect: logEachSelect.checked,
+                    logExecutionTime: logExecutionTime.checked,
+                    printFailed: document.getElementById('print-failed').checked,
+                    printProgressInfo: document.getElementById('print-progress-info').checked,
+                    printStatements: document.getElementById('print-statements').checked,
+                    testOnlyNonempty: document.getElementById('test-only-nonempty').checked,
+                    // 收集数据库参数
+                    databaseParams: []
+                };
+
+                // 收集选中的数据库参数
+                const dbParamCheckboxes = document.querySelectorAll('#database-params-table input[type="checkbox"]');
+                const dbParamNames = document.querySelectorAll('#database-params-table td:first-child');
+
+                dbParamCheckboxes.forEach((checkbox, index) => {
+                    if (checkbox.checked) {
+                        params.databaseParams.push(dbParamNames[index].textContent);
+                    }
+                });
+
+                // 在实际应用中，这里会将参数发送到后端
+                console.log('测试参数:', params);
+                alert('测试已启动！参数已记录到控制台。');
+
+                // 切换到状态信息页面
+                switchPanel(statusInfoBtn);
+            });
+
+            // 代码折叠面板相关事件
+            collapseHeader.addEventListener('click', function () {
+                codeCollapsePanel.classList.toggle('hidden');
+            });
+
+            closeCollapse.addEventListener('click', function (e) {
+                e.stopPropagation();
+                codeCollapsePanel.classList.add('hidden');
+            });
+
+            // 显示参数设置和测试样例
+            document.querySelectorAll('.show-params-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    collapseTitle.textContent = '参数设置';
+                    collapseContent.textContent = '// 这里是参数设置的代码示例\nmax_connections = 151\nwait_timeout = 28800\ninnodb_buffer_pool_size = 134217728\nmax_allowed_packet = 4194304\nquery_cache_size = 0\nsort_buffer_size = 262144';
+                    codeCollapsePanel.classList.remove('hidden');
+                });
+            });
+
+            document.querySelectorAll('.show-example-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    collapseTitle.textContent = '测试样例';
+                    collapseContent.textContent = '// 这里是测试样例的代码示例\nSELECT * FROM users WHERE id = \' OR \'1\' = \'1\' --\nINSERT INTO products VALUES (NULL, \'test\', \'desc\', -1)\nUPDATE accounts SET balance = balance + 1000 WHERE user_id = 1';
+                    codeCollapsePanel.classList.remove('hidden');
+                });
+            });
+
+            // 初始化
+            updateDatabaseParams('mysql');
+            testSettingsPanel.classList.remove('hidden');
+            statusInfoPanel.classList.add('hidden');
+            testReportPanel.classList.add('hidden');
+        });
+    </script>
+</body>
+
+</html>
