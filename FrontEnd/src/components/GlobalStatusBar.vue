@@ -91,6 +91,7 @@ const startTest = async () => {
   try {
     await axios.post('http://localhost:8080/api/test/start')
     alert('测试启动成功！')
+   
   } catch (err: any) {
     alert('启动失败：' + (err.response?.data?.message || err.message))
   }

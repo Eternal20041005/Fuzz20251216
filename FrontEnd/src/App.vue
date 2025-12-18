@@ -376,7 +376,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch, nextTick } from 'vue' 
+import SockJS from 'sockjs-client'     
+import { Client } from '@stomp/stompjs' 
 import DatabaseParameterManager from './components/DatabaseParameterManager.vue'
 import TestCases from './components/TestCases.vue'
 import GlobalStatusBar from './components/GlobalStatusBar.vue'
@@ -393,6 +395,111 @@ declare global {
     coverageChart: any
   }
 }
+
+// ... 在 script setup 中间位置添加 ...
+
+// WebSocket 客户端实例
+let appStompClient: Client | null = null;
+let lastRunTimeSeconds = -1;
+// 初始化 App 组件的 WebSocket
+const initAppWebSocket = () => {
+  const socket = new SockJS('http://localhost:8080/api/ws-test');
+  appStompClient = new Client({
+    webSocketFactory: () => socket,
+    reconnectDelay: 5000,
+    onConnect: () => {
+      console.log('状态监测面板 WS 已连接');
+      
+      appStompClient?.subscribe('/topic/testStatus', (msg) => {
+        // 只在状态页处理数据，节省性能
+        if (activePanel.value !== 'status') return; 
+
+        const data = JSON.parse(msg.body);
+        
+        // 1. 解析当前运行时间（后端可能发数字或字符串，统一转int）
+        const currentSeconds = parseInt(data.run_time || 0);
+
+        // 2. 【核心修复】自动检测测试重启
+        // 逻辑：如果当前时间 < 上次时间（例如从 40s 变回 0s），或者 时间为0且图表里有大量旧数据
+        // 这意味着用户点击了“开始测试”，后端计数器归零了。
+        if (currentSeconds < lastRunTimeSeconds || (currentSeconds === 0 && window.coverageChart && window.coverageChart.data.labels.length > 2)) {
+          console.log('检测到测试重启（时间重置），正在清空图表...');
+          if (window.coverageChart) {
+            window.coverageChart.data.labels = [];
+            window.coverageChart.data.datasets[0].data = [];
+            window.coverageChart.update('none'); // 立刻刷新
+          }
+        }
+        
+        // 更新上一次的时间记录
+        lastRunTimeSeconds = currentSeconds;
+
+        // 3. 更新界面文字信息
+        statusMonitorTestStatus.value.runTime = `${data.run_time || 0}秒`;
+        statusMonitorTestStatus.value.currentParamCombo = data.current_param_combo || '无';
+        statusMonitorTestStatus.value.coverageRate = data.coverage_rate || '0.00';
+        statusMonitorTestStatus.value.bugCount = data.bug_count || '0';
+        statusMonitorTestStatus.value.executionCount = data.execution_count || '0';
+        statusMonitorTestStatus.value.throughput = data.throughput || '0';
+        if (data.test_oracle) {
+            statusMonitorTestStatus.value.testOracle = data.test_oracle;
+        }
+
+        // 4. 更新曲线图（复用之前写好的去重逻辑）
+        updateCoverageChartData(data.run_time, data.coverage_rate);
+      });
+    },
+    onStompError: (frame) => {
+      console.error('App WS 错误:', frame.headers['message']);
+    }
+  });
+  appStompClient.activate();
+};
+
+// 实时更新图表数据的函数
+// 实时更新图表数据的函数（增强版：强力去重 + 格式标准化）
+const updateCoverageChartData = (timeVal: any, coverageVal: any) => {
+  // 确保图表实例存在
+  if (!window.coverageChart) return;
+  
+  const chart = window.coverageChart;
+  
+  // 1. 【核心修改】标准化时间标签
+  // 无论后端传的是数字 4、字符串 "4"、"4.0" 还是 "4s"，都统一转换为整数 "4s"
+  // 这能有效防止因格式不一致导致的重复点 (例如 "4" != "4s")
+  const rawNum = parseFloat(String(timeVal).replace(/[^0-9.]/g, '')); // 去掉非数字字符
+  const secondInt = isNaN(rawNum) ? 0 : Math.floor(rawNum); // 向下取整，忽略毫秒差异
+  const label = `${secondInt}s`; 
+  
+  // 2. 去重逻辑：检查图表上最后一个标签
+  const labels = chart.data.labels;
+  if (labels.length > 0) {
+    const lastLabel = labels[labels.length - 1];
+    
+    // 如果标准化后的标签相同（例如都是 "4s"）
+    if (lastLabel === label) {
+      // 仅仅更新最后一个点的 Y 轴数值（覆盖率），而不新增点
+      const dataset = chart.data.datasets[0];
+      if (dataset.data.length > 0) {
+        dataset.data[dataset.data.length - 1] = coverageVal;
+        chart.update('none'); // 静默更新
+      }
+      return; // ⛔️ 这里的 return 非常重要，阻止了后续的 push 操作
+    }
+  }
+  
+  // 3. 追加新数据点（只有标签不同时才会执行到这里）
+  chart.data.labels.push(label);
+  chart.data.datasets[0].data.push(coverageVal);
+  
+  // 4. 限制窗口大小（例如只显示最近 20 个点）
+  if (chart.data.labels.length > 20) {
+    chart.data.labels.shift(); 
+    chart.data.datasets[0].data.shift(); 
+  }
+  
+  chart.update('none');
+};
 
 // 新增：定义参数类型（适配后端返回的字段，id/paramName/weight 必须和后端一致）
 interface Parameter {
@@ -493,12 +600,31 @@ const getParamComboWeights = async () => {
 }
 
 // 获取测试状态（只查test_status表）
+// 修改 FrontEnd/src/App.vue 中的 getTestStatus 方法
+
+// 获取测试状态（只查test_status表）
 const getTestStatus = async () => {
   try {
     const res = await axios.get('http://localhost:8080/api/status-monitor/test-status')
+    
+    // --- 修改开始：从 localStorage 读取真实的数据库配置 ---
+    let dbName = 'MySQL'
+    let dbVersion = '8.0.44'
+    const savedDb = localStorage.getItem('selectedDb')
+    if (savedDb) {
+      try {
+        const dbData = JSON.parse(savedDb)
+        dbName = dbData.name || 'MySQL'
+        dbVersion = dbData.version || '8.0.44'
+      } catch (e) {
+        console.warn('解析数据库配置失败', e)
+      }
+    }
+    // --- 修改结束 ---
+
     statusMonitorTestStatus.value = {
-      currentDatabase: 'MySQL',
-      dbVersion: '8.0.26',
+      currentDatabase: dbName,     // 使用读取到的名称
+      dbVersion: dbVersion,        // 使用读取到的版本
       runTime: `${res.data.runTime || 0}秒`,
       currentParamCombo: res.data.currentParamCombo || '无',
       coverageRate: res.data.coverageRate || '0.00',
@@ -512,7 +638,6 @@ const getTestStatus = async () => {
     showMessage('获取测试状态失败', 'error')
   }
 }
-
 // 修复后的代码：刷新保留页面状态
 const activePanel = ref<'settings'|'status'|'report'|'testCases'>(
   // 优先读取本地存储的状态，没有就默认显示测试设置页
@@ -893,28 +1018,24 @@ function resetFuzzParams() {
 function initCoverageChart() {
   const canvas = document.getElementById('coverage-chart') as HTMLCanvasElement | null;
   if (!canvas) return;
-  // @ts-ignore - Chart 是全局变量
   const { Chart } = window as any;
   if (!Chart) return;
 
-  // 关键：先销毁已存在的图表，避免重复渲染
   if (window.coverageChart) {
     window.coverageChart.destroy();
-    window.coverageChart = null; // 清空引用
+    window.coverageChart = null;
   }
 
-  // 强制设置画布高度（防止无限变长）
-  canvas.style.height = '300px'; // 固定高度，可根据需求调整
+  canvas.style.height = '300px';
 
-  // 初始化新图表（色调改为靛蓝色系）
   window.coverageChart = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: {
-      labels: ['0h','0.5h','1h','1.5h','2h','2.5h','3h'],
+      labels: [], // 修改：初始化为空
       datasets: [{
         label: '代码覆盖率',
-        data: [10,25,42,58,65,72,80],
-        borderColor: '#4F46E5', // 靛蓝色
+        data: [], // 修改：初始化为空
+        borderColor: '#4F46E5',
         backgroundColor: 'rgba(79, 70, 229, 0.1)',
         tension: 0.4,
         fill: true,
@@ -922,7 +1043,8 @@ function initCoverageChart() {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // 配合固定高度使用
+      maintainAspectRatio: false,
+      animation: false, // 建议：关闭初始化动画，实时更新更流畅
       scales: {
         y: {
           beginAtZero: true,
@@ -938,7 +1060,6 @@ function initCoverageChart() {
     },
   });
 }
-
 // 导出PDF功能
 const exportPdf = () => {
   try {
@@ -970,15 +1091,29 @@ const exportPdf = () => {
 }
 
 onMounted(async () => {
-	// 初始化
-	activeSubTab.value = 'fuzz'
-	await loadDefaultConfig() // 加载默认配置
+  activeSubTab.value = 'fuzz'
+  await loadDefaultConfig()
+  
+  // 启动 WebSocket 监听
+  initAppWebSocket() // 新增
 
-	if (activePanel.value === 'status') {
+  if (activePanel.value === 'status') {
     getParameterList()
-	initCoverageChart()
+    // 注意：这里需要 nextTick 确保 DOM 渲染后再初始化图表
+    nextTick(() => {
+        initCoverageChart()
+    })
   }
 })
+
+onUnmounted(() => {
+  if (appStompClient) {
+    appStompClient.deactivate();
+    console.log('状态监测面板 WS 已断开');
+  }
+})
+// 新增销毁钩子
+
 </script>
 
 <style scoped>

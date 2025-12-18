@@ -125,34 +125,102 @@ public class FuzzTestConfig {
 
     // 从Map更新配置
     public void updateFromMap(java.util.Map<String, Object> configMap) {
-        if (configMap.containsKey("testOracle"))
-            this.testOracle = (String) configMap.get("testOracle");
-        if (configMap.containsKey("randomSeed"))
-            this.randomSeed = ((Number) configMap.get("randomSeed")).longValue();
-        if (configMap.containsKey("maxExpressionDepth"))
-            this.maxExpressionDepth = ((Number) configMap.get("maxExpressionDepth")).intValue();
-        if (configMap.containsKey("numQueries"))
-            this.numQueries = ((Number) configMap.get("numQueries")).intValue();
-        if (configMap.containsKey("maxNumInserts"))
-            this.maxNumInserts = ((Number) configMap.get("maxNumInserts")).intValue();
-        if (configMap.containsKey("numTries"))
-            this.numTries = ((Number) configMap.get("numTries")).intValue();
-        if (configMap.containsKey("timeoutSeconds"))
-            this.timeoutSeconds = ((Number) configMap.get("timeoutSeconds")).intValue();
-        if (configMap.containsKey("maxGeneratedDatabases"))
-            this.maxGeneratedDatabases = ((Number) configMap.get("maxGeneratedDatabases")).intValue();
-        if (configMap.containsKey("username"))
-            this.username = (String) configMap.get("username");
-        if (configMap.containsKey("password"))
-            this.password = (String) configMap.get("password");
-        if (configMap.containsKey("host"))
-            this.host = (String) configMap.get("host");
-        if (configMap.containsKey("port"))
-            this.port = ((Number) configMap.get("port")).intValue();
+        if (configMap == null) return;
+
+        if (configMap.containsKey("testOracle")) {
+            Object val = configMap.get("testOracle");
+            this.testOracle = val != null ? String.valueOf(val) : null;
+        }
+
+        if (configMap.containsKey("randomSeed")) {
+            Long val = parseLong(configMap.get("randomSeed"));
+            if (val != null) this.randomSeed = val;
+        }
+
+        if (configMap.containsKey("maxExpressionDepth")) {
+            Integer val = parseInteger(configMap.get("maxExpressionDepth"));
+            if (val != null) this.maxExpressionDepth = val;
+        }
+
+        if (configMap.containsKey("numQueries")) {
+            Integer val = parseInteger(configMap.get("numQueries"));
+            if (val != null) this.numQueries = val;
+        }
+
+        if (configMap.containsKey("maxNumInserts")) {
+            Integer val = parseInteger(configMap.get("maxNumInserts"));
+            if (val != null) this.maxNumInserts = val;
+        }
+
+        if (configMap.containsKey("numTries")) {
+            Integer val = parseInteger(configMap.get("numTries"));
+            if (val != null) this.numTries = val;
+        }
+
+        if (configMap.containsKey("timeoutSeconds")) {
+            Integer val = parseInteger(configMap.get("timeoutSeconds"));
+            if (val != null) this.timeoutSeconds = val;
+        }
+
+        if (configMap.containsKey("maxGeneratedDatabases")) {
+            Integer val = parseInteger(configMap.get("maxGeneratedDatabases"));
+            if (val != null) this.maxGeneratedDatabases = val;
+        }
+
+        if (configMap.containsKey("username")) {
+            Object val = configMap.get("username");
+            this.username = val != null ? String.valueOf(val) : null;
+        }
+
+        if (configMap.containsKey("password")) {
+            Object val = configMap.get("password");
+            this.password = val != null ? String.valueOf(val) : null;
+        }
+
+        if (configMap.containsKey("host")) {
+            Object val = configMap.get("host");
+            this.host = val != null ? String.valueOf(val) : null;
+        }
+
+        if (configMap.containsKey("port")) {
+            Integer val = parseInteger(configMap.get("port"));
+            if (val != null) this.port = val;
+        }
 
         this.updatedAt = LocalDateTime.now();
     }
+private Integer parseInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value instanceof String) {
+            try {
+                String str = ((String) value).trim();
+                return str.isEmpty() ? null : Integer.parseInt(str);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
 
+    // 新增辅助方法：安全解析 Long
+    private Long parseLong(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        if (value instanceof String) {
+            try {
+                String str = ((String) value).trim();
+                return str.isEmpty() ? null : Long.parseLong(str);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
+    }
     // Getter 和 Setter 方法
     public Long getId() {
         return id;
