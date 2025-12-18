@@ -125,18 +125,7 @@
 										>
 											<i class="fa fa-save mr-1"></i> 保存配置
 										</button>
-										<button
-											class="py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm transition-all shadow-sm"
-											@click="showSchemeDialog = true"
-										>
-											<i class="fa fa-bookmark mr-1"></i> 保存方案
-										</button>
-										<button
-											class="px-4 py-2 text-sm border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-											@click="openSchemeListDialog"
-										>
-											<i class="fa fa-list mr-1"></i> 查看方案
-										</button>
+
 										<button
 											class="px-4 py-2 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
 											@click="resetFuzzParams"
@@ -209,9 +198,7 @@
 								</div>
 
 							</div>
-							<div class="flex justify-center p-6">
-								<button id="start-test-btn" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5" @click="startTest">开始测试</button>
-							</div>
+							
 						</div>
 					</div>
 				</div>
@@ -221,7 +208,7 @@
 					<!-- 左右分栏 -->
 					<div class="flex h-full gap-6">
 						<!-- 左侧：参数组合权重表格 -->
-						<div class="w-half bg-white rounded-xl shadow-md p-6 border border-slate-100 overflow-hidden flex flex-col">
+						<div class="w-1/2 bg-white rounded-xl shadow-md p-6 border border-slate-100 overflow-hidden flex flex-col">
 							<div class="flex justify-between items-center mb-4">
 								<h2 class="text-lg font-bold text-indigo-700">参数组合权重</h2>
 								<button 
@@ -258,7 +245,7 @@
 						</div>
 
 						<!-- 右侧：数据看板 -->
-						<div class="w-half flex flex-col gap-6">
+						<div class="w-1/2 flex flex-col gap-6">
 							<!-- 数据库信息卡片 -->
 							<div class="bg-white rounded-xl shadow-md p-6 border border-slate-100">
 								<h2 class="text-lg font-bold mb-4 text-indigo-700">数据库信息</h2>
@@ -381,167 +368,15 @@
 		{{ message.text }}
 	</div>
 
-	<!-- 保存方案对话框 -->
-	<div v-if="showSchemeDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-xl shadow-xl w-full max-w-md">
-			<h3 class="text-lg font-semibold mb-4 p-4 border-b border-slate-200 text-indigo-700">保存参数方案</h3>
-			<div class="space-y-4 p-4">
-				<div>
-					<label class="block text-sm font-medium mb-2 text-slate-700">方案名称</label>
-					<input 
-						v-model="newSchemeName" 
-						type="text" 
-						class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
-						placeholder="请输入方案名称"
-					>
-				</div>
-				<div>
-					<label class="block text-sm font-medium mb-2 text-slate-700">方案描述</label>
-					<textarea 
-						v-model="newSchemeDescription" 
-						class="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-all"
-						placeholder="请输入方案描述（可选）"
-						rows="3"
-					></textarea>
-				</div>
-				<div class="flex justify-end gap-3 pt-2">
-					<button 
-						class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-						@click="showSchemeDialog = false"
-					>
-						取消
-					</button>
-					<button 
-						class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-						@click="saveCurrentParametersAsScheme"
-					>
-						保存
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
 	
-	<!-- 查看方案列表弹窗 -->
-	<div v-if="showSchemeListDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-xl shadow-xl w-full max-w-3xl p-6">
-			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-semibold text-indigo-700">已保存的参数方案</h3>
-				<button
-					@click="closeSchemeListDialog"
-					class="text-slate-500 hover:text-slate-700 text-xl"
-				>
-					✕
-				</button>
-			</div>
-
-			<div v-if="fuzzSchemes.length === 0" class="text-center text-slate-500 py-6">
-				暂无已保存的参数方案，请先点击“保存方案”创建。
-			</div>
-
-			<div v-else class="max-h-96 overflow-y-auto border border-slate-200 rounded-lg">
-				<table class="min-w-full text-sm">
-					<thead class="bg-indigo-50">
-						<tr>
-							<th class="px-4 py-3 text-left border-b border-slate-200 text-indigo-700">方案名称</th>
-							<th class="px-4 py-3 text-left border-b border-slate-200 text-indigo-700">描述</th>
-							<th class="px-4 py-3 text-left border-b border-slate-200 text-indigo-700">创建时间</th>
-							<th class="px-4 py-3 text-center border-b border-slate-200 text-indigo-700">操作</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr
-							v-for="scheme in fuzzSchemes"
-							:key="scheme.id"
-							class="hover:bg-slate-50 transition-all"
-						>
-							<td class="px-4 py-3 border-b border-slate-200 font-medium text-slate-800">
-								{{ scheme.name }}
-							</td>
-							<td class="px-4 py-3 border-b border-slate-200 max-w-xs truncate text-slate-700" :title="scheme.description">
-								{{ scheme.description || '（无描述）' }}
-							</td>
-							<td class="px-4 py-3 border-b border-slate-200 text-slate-600">
-								{{ formatDate(scheme.createdAt) }}
-							</td>
-							<td class="px-4 py-3 border-b border-slate-200 text-center space-x-2">
-								<button
-									@click="viewSchemeDescription(scheme)"
-									class="px-2 py-1 text-xs border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-								>
-									查看描述
-								</button>
-								<button
-									@click="applyFuzzScheme(scheme)"
-									class="px-2 py-1 text-xs border border-green-200 text-green-600 rounded-lg hover:bg-green-50 transition-colors"
-								>
-									应用方案
-								</button>
-								<button
-									@click="deleteFuzzScheme(scheme.id)"
-									class="px-2 py-1 text-xs border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-								>
-									删除方案
-								</button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</div>
 	
-	<!-- 参数方案详情弹窗 -->
-	<div
-		v-if="schemeDetail"
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
-	>
-		<div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
-			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-semibold text-indigo-700">方案详情</h3>
-				<button
-					@click="closeSchemeDetailDialog"
-					class="text-slate-500 hover:text-slate-700"
-				>
-					✕
-				</button>
-			</div>
 
-			<div class="space-y-3 text-sm text-slate-700">
-				<div class="flex justify-between">
-					<span class="font-medium text-slate-900">方案名称</span>
-					<span>{{ schemeDetail?.name }}</span>
-				</div>
-				<div class="flex justify-between">
-					<span class="font-medium text-slate-900">参数数量</span>
-					<span>{{ Object.keys(schemeDetail?.parameters || {}).length }}</span>
-				</div>
-				<div class="flex justify-between">
-					<span class="font-medium text-slate-900">创建时间</span>
-					<span>{{ formatDate(schemeDetail?.createdAt || 0) }}</span>
-				</div>
-				<div>
-					<span class="block font-medium text-slate-900 mb-1">方案描述</span>
-					<div class="p-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 leading-relaxed whitespace-pre-wrap">
-						{{ schemeDetail?.description || '（无描述）' }}
-					</div>
-				</div>
-			</div>
+	
 
-			<div class="mt-6 flex justify-end">
-				<button
-					@click="closeSchemeDetailDialog"
-					class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-				>
-					我知道了
-				</button>
-			</div>
-		</div>
-	</div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch, nextTick } from 'vue'
 import DatabaseParameterManager from './components/DatabaseParameterManager.vue'
 import TestCases from './components/TestCases.vue'
 import GlobalStatusBar from './components/GlobalStatusBar.vue'
@@ -552,6 +387,13 @@ import { reportApi } from './api/reportApi'
 import html2pdf from 'html2pdf.js'
 import type { BugReportItem, PagedBugReports, FuzzTestConfig } from './types'
 
+// 声明全局类型
+declare global {
+  interface Window {
+    coverageChart: any
+  }
+}
+
 // 新增：定义参数类型（适配后端返回的字段，id/paramName/weight 必须和后端一致）
 interface Parameter {
   id: number;         // 参数ID（后端是Long类型，前端用number兼容）
@@ -561,18 +403,7 @@ interface Parameter {
   isSaving?: boolean; // 是否正在保存（用于显示加载状态）
 }
 
-// 模糊测试参数方案相关接口定义
-interface FuzzParameterSchemeItem {
-  id: string;
-  name: string;
-  description?: string;
-  parameters: typeof defaultForm;
-  createdAt: number;
-}
 
-interface FuzzParameterScheme {
-  schemes: FuzzParameterSchemeItem[];
-}
 
 // 新增：存储参数列表（响应式数据，用ref包裹数组，类型指定为Parameter[]）
 const parameterList = ref<Parameter[]>([])
@@ -741,124 +572,7 @@ const defaultForm = {
 // 当前模糊测试参数表单
 const form = reactive({ ...defaultForm })
 
-// 模糊测试参数方案相关
-const FUZZ_SCHEME_STORAGE_KEY = 'fuzz-parameter-schemes'
-const fuzzSchemes = ref<FuzzParameterSchemeItem[]>([])
-const showSchemeDialog = ref(false) // 保存方案弹窗
-const showSchemeListDialog = ref(false) // 查看方案列表弹窗
-const schemeDetail = ref<FuzzParameterSchemeItem | null>(null) // 当前查看详情的方案
-const newSchemeName = ref('')
-const newSchemeDescription = ref('')
-const selectedScheme = ref<FuzzParameterSchemeItem | null>(null)
 
-// 加载方案列表
-const loadFuzzSchemesFromStorage = () => {
-  try {
-    const stored = localStorage.getItem(FUZZ_SCHEME_STORAGE_KEY)
-    if (stored) {
-      const schemeData = JSON.parse(stored) as FuzzParameterScheme
-      fuzzSchemes.value = schemeData.schemes || []
-    }
-  } catch (error) {
-    console.error('加载模糊测试参数方案失败:', error)
-    fuzzSchemes.value = []
-  }
-}
-
-// 打开方案列表弹窗
-const openSchemeListDialog = () => {
-  loadFuzzSchemesFromStorage() // 打开前刷新方案列表
-  showSchemeListDialog.value = true
-}
-
-// 关闭方案列表弹窗
-const closeSchemeListDialog = () => {
-  showSchemeListDialog.value = false
-}
-
-// 查看方案描述
-const viewSchemeDescription = (scheme: FuzzParameterSchemeItem) => {
-  schemeDetail.value = scheme
-}
-
-// 关闭方案详情弹窗
-const closeSchemeDetailDialog = () => {
-  schemeDetail.value = null
-}
-
-// 保存方案列表
-const saveFuzzSchemesToStorage = () => {
-  try {
-    const schemeData: FuzzParameterScheme = { schemes: fuzzSchemes.value }
-    localStorage.setItem(FUZZ_SCHEME_STORAGE_KEY, JSON.stringify(schemeData))
-  } catch (error) {
-    console.error('保存模糊测试参数方案失败:', error)
-  }
-}
-
-// 保存当前参数为新方案
-const saveCurrentParametersAsScheme = () => {
-  if (!newSchemeName.value.trim()) {
-    alert('请输入方案名称')
-    return
-  }
-
-  const newScheme: FuzzParameterSchemeItem = {
-    id: Date.now().toString(),
-    name: newSchemeName.value.trim(),
-    description: newSchemeDescription.value.trim(),
-    parameters: JSON.parse(JSON.stringify(form)),
-    createdAt: Date.now()
-  }
-
-  fuzzSchemes.value.push(newScheme)
-  saveFuzzSchemesToStorage()
-
-  // 重置对话框
-  newSchemeName.value = ''
-  newSchemeDescription.value = ''
-  showSchemeDialog.value = false
-  alert('参数方案已保存')
-}
-
-// 应用方案
-const applyFuzzScheme = (scheme: FuzzParameterSchemeItem) => {
-  if (confirm(`确定要应用方案 "${scheme.name}" 吗？当前参数将被覆盖。`)) {
-    Object.assign(form, JSON.parse(JSON.stringify(scheme.parameters)))
-    alert(`已应用方案 "${scheme.name}"`)
-    // 保持弹窗打开，用户可继续操作其他方案
-  }
-}
-
-// 删除方案
-const deleteFuzzScheme = (schemeId: string) => {
-  if (confirm('确定要删除该方案吗？此操作不可恢复。')) {
-    const index = fuzzSchemes.value.findIndex(s => s.id === schemeId)
-    if (index !== -1) {
-      fuzzSchemes.value.splice(index, 1)
-      saveFuzzSchemesToStorage()
-      
-      // 如果当前查看的是被删除的方案详情，则关闭详情弹窗
-      if (schemeDetail.value?.id === schemeId) {
-        schemeDetail.value = null
-      }
-      
-      alert('方案已删除')
-      // 保持弹窗打开，用户可继续操作其他方案
-    }
-  }
-}
-
-// 格式化时间
-const formatDate = (timestamp: number) => {
-  return new Date(timestamp).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
 
 const collapseVisible = ref(false)
 const collapseTitle = ref('参数设置')
@@ -871,24 +585,29 @@ function openCollapse(title: string, content: string) {
 }
 
 // 唯一的switchPanel函数（无重复）
+// 定位到 switchPanel 函数
 function switchPanel(panel: 'settings'|'status'|'report'|'testCases') {
   // 仅在从非状态页切换到状态页时，才初始化图表
   const isSwitchToStatus = activePanel.value !== 'status' && panel === 'status';
-  
-  activePanel.value = panel;
+
+  activePanel.value = panel; // 这一步触发 DOM 更新（v-show 切换）
+
   if (panel === 'status') {
     // 加载状态监测页的独立数据
     getParamComboWeights() 
     getTestStatus()
     // 保留原有逻辑
     getParameterList();
-    if (isSwitchToStatus) { // 避免重复调用
-      initCoverageChart();
+
+    if (isSwitchToStatus) { 
+      // [!修改处] 使用 nextTick 等待 DOM 更新完成（元素真正显示且有了宽度）后再初始化图表
+      nextTick(() => {
+        initCoverageChart();
+      });
     }
   } else if (panel === 'report') {
     getTestReportData();
   } else if (panel === 'testCases' && testCasesRef.value) {
-    // 切换到测试用例页面时调用刷新方法
     testCasesRef.value.refreshTestCases();
   }
 }
@@ -933,9 +652,19 @@ const getBugReports = async () => {
 const getTestReportData = async () => {
   reportLoading.value = true
   try {
-    // 获取当前正在测试的数据库
-    const dbResponse = await reportApi.getCurrentTestDatabase()
-    currentDatabase.value = dbResponse
+    // 从localStorage读取当前数据库信息，与全局状态栏保持一致
+    const savedDb = localStorage.getItem('selectedDb')
+    if (savedDb) {
+      const dbData = JSON.parse(savedDb)
+      currentDatabase.value = {
+        name: `${dbData.name} (v${dbData.version})`
+      }
+    } else {
+      // 默认值
+      currentDatabase.value = {
+        name: 'MySQL (v8.0.44)'
+      }
+    }
     
     // 获取测试状态数据
     const statusResponse = await reportApi.getTestStatus()
@@ -1225,11 +954,11 @@ const exportPdf = () => {
 
     // 配置导出选项
     const options = {
-      margin: [10, 10, 10, 10],
+      margin: 10, // 使用统一的边距值
       filename: fileName,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
     }
 
     // 执行导出
@@ -1243,7 +972,6 @@ const exportPdf = () => {
 onMounted(async () => {
 	// 初始化
 	activeSubTab.value = 'fuzz'
-	loadFuzzSchemesFromStorage() // 加载模糊测试参数方案
 	await loadDefaultConfig() // 加载默认配置
 
 	if (activePanel.value === 'status') {

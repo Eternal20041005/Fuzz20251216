@@ -16,7 +16,7 @@ import java.math.BigDecimal;
  */
 @RestController
 @RequestMapping("/status-monitor") // 去掉/api前缀，匹配Tomcat路径
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"}, allowCredentials = "true")
 public class StatusMonitorController {
 
     @Autowired

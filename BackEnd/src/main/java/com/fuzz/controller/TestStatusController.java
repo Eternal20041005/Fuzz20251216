@@ -15,7 +15,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/test-status")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"}, allowCredentials = "true")
 public class TestStatusController {
 
     private static final Logger logger = LoggerFactory.getLogger(TestStatusController.class);

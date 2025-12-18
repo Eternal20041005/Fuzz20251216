@@ -29,7 +29,7 @@ public class FuzzTestConfig {
 
     @NotBlank(message = "配置名称不能为空")
     @Size(max = 100, message = "配置名称长度不能超过100个字符")
-    @Column(name = "config_name", nullable = false, length = 100)
+    @Column(name = "config_name", nullable = false, length = 100, unique = true)
     private String configName;
 
     @Size(max = 200, message = "配置描述长度不能超过200个字符")

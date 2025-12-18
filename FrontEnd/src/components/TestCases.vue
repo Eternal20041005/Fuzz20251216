@@ -88,7 +88,7 @@
             <th class="py-2 px-4 border border-gray-300 text-left">权重值</th>
             <th class="py-2 px-4 border border-gray-300 text-left">SQL语句</th>
             <th class="py-2 px-4 border border-gray-300 text-left">是否触发漏洞</th>
-            <th class="py-2 px-4 border border-gray-300 text-left">Bug ID</th>
+
           </tr>
         </thead>
         <tbody>
@@ -112,7 +112,7 @@
                 {{ testCase.triggeredBug ? '是' : '否' }}
               </span>
             </td>
-            <td class="py-2 px-4 border border-gray-300">{{ testCase.bugId || '-' }}</td>
+
           </tr>
         </tbody>
       </table>

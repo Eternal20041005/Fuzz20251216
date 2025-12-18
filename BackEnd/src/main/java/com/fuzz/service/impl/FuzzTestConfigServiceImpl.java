@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,14 +29,17 @@ public class FuzzTestConfigServiceImpl implements FuzzTestConfigService {
     private FuzzTestConfigRepository configRepository;
 
     @Override
-    @Transactional(readOnly = true)
     public FuzzTestConfigDto getDefaultConfig() {
         logger.info("获取默认模糊测试配置");
 
-        FuzzTestConfig config = configRepository.findDefaultConfig(DEFAULT_CONFIG_NAME)
-                .orElseGet(() -> createDefaultConfigIfNotExists());
-
-        return convertToDto(config);
+        try {
+            return convertToDto(configRepository.findDefaultConfig(DEFAULT_CONFIG_NAME)
+                    .orElseGet(() -> createDefaultConfigIfNotExists()));
+        } catch (Exception e) {
+            logger.error("获取默认配置失败，可能存在重复记录: {}", e.getMessage());
+            // 如果发现重复记录，清理并保留最新的一条
+            return convertToDto(cleanupDuplicateDefaultConfigs());
+        }
     }
 
     @Override
@@ -175,6 +179,39 @@ public class FuzzTestConfigServiceImpl implements FuzzTestConfigService {
         return configRepository.existsByConfigName(configName);
     }
 
+    /**
+     * 清理重复的默认配置，只保留最新的一条
+     */
+    private FuzzTestConfig cleanupDuplicateDefaultConfigs() {
+        logger.info("清理重复的默认配置");
+        
+        // 查询所有名为"default"的配置记录
+        List<FuzzTestConfig> allConfigs = configRepository.findAll();
+        List<FuzzTestConfig> defaultConfigs = allConfigs.stream()
+                .filter(config -> DEFAULT_CONFIG_NAME.equals(config.getConfigName()))
+                .sorted(Comparator.comparing(FuzzTestConfig::getUpdatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                .collect(Collectors.toList());
+        
+        if (defaultConfigs.isEmpty()) {
+            // 如果没有默认配置，创建一个新的
+            return createDefaultConfigIfNotExists();
+        }
+        
+        // 保留最新的一条配置
+        FuzzTestConfig latestConfig = defaultConfigs.get(0);
+        
+        // 删除其他重复的配置
+        if (defaultConfigs.size() > 1) {
+            for (int i = 1; i < defaultConfigs.size(); i++) {
+                FuzzTestConfig duplicateConfig = defaultConfigs.get(i);
+                logger.info("删除重复的默认配置: {}", duplicateConfig.getId());
+                configRepository.delete(duplicateConfig);
+            }
+        }
+        
+        return latestConfig;
+    }
+    
     /**
      * 如果默认配置不存在，则创建一个
      */

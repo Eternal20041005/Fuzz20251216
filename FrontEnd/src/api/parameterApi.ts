@@ -112,6 +112,7 @@ export const parameterApi = {
         if (params.search) searchParams.set('search', params.search)
         if (params.category) searchParams.set('category', params.category)
         if (params.valueRange) searchParams.set('valueRange', params.valueRange)
+        // 暂时不处理testStatus参数，后端暂不支持
 
         const query = searchParams.toString()
         return api.get(`/parameters/enhanced${query ? `?${query}` : ''}`)

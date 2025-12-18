@@ -58,6 +58,7 @@ com\fuzz\service\TestCaseService.class
 com\fuzz\controller\TestCaseController.class
 com\fuzz\dto\FuzzTestConfigDto.class
 com\fuzz\service\impl\ParameterServiceImpl.class
+com\fuzz\service\ParameterConstraintValidator$1.class
 com\fuzz\repository\DbParameterRepository.class
 com\fuzz\repository\TestStatusRepository.class
 com\fuzz\entity\ParameterType.class

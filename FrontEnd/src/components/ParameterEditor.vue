@@ -68,7 +68,7 @@
         <input 
           v-if="parameter.paramType === 'INTEGER'"
           type="number"
-          v-model.number="editValue"
+          v-model="editValue"
           :min="parameter.minValue"
           :max="parameter.maxValue"
           :placeholder="parameter.defaultValue || '请输入数值'"
@@ -77,14 +77,13 @@
           @blur="onInputBlur"
           @keyup.enter="handleSave"
           @input="onValueChange"
-        />
-        
+        />        
         <!-- 数值输入（小数类型） -->
         <input 
           v-else-if="parameter.paramType === 'DECIMAL'"
           type="number"
           step="0.01"
-          v-model.number="editValue"
+          v-model="editValue"
           :min="parameter.minValue"
           :max="parameter.maxValue"
           :placeholder="parameter.defaultValue || '请输入小数'"
@@ -146,7 +145,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 // 响应式数据
-const editValue = ref<string | number>('')
+const editValue = ref<string>('')
 const originalValue = ref<string>('')
 const isEditing = ref(props.alwaysEditing)
 const rootRef = ref<HTMLElement | null>(null)
@@ -198,8 +197,6 @@ const initEditValue = () => {
   if (hasCandidateValues.value) {
     // 对于候选值，下拉默认显示“请选择值”
     editValue.value = ''
-  } else if (props.parameter.paramType === 'INTEGER' || props.parameter.paramType === 'DECIMAL') {
-    editValue.value = value ? Number(value) : ''
   } else {
     editValue.value = value
   }
@@ -282,7 +279,7 @@ const getHelpText = (): string => {
 // 验证输入值
 const validateValue = (value: string): ValidationResult => {
   if (value === '' || value === null || value === undefined) {
-    return { valid: true } // 允许空值
+    return { valid: true, message: '' } // 允许空值
   }
   
   const strValue = String(value).trim()
@@ -333,7 +330,7 @@ const validateValue = (value: string): ValidationResult => {
       break
   }
   
-  return { valid: true }
+  return { valid: true, message: '' }
 }
 
 const onValueChange = () => {
@@ -347,8 +344,11 @@ const onValueChange = () => {
   }
 }
 
-const onValidationResult = (result: ValidationResult) => {
-  validationResult.value = result
+const onValidationResult = (result: { valid: boolean; message?: string }) => {
+  validationResult.value = { 
+    valid: result.valid, 
+    message: result.message || '' 
+  }
 }
 
 const onCandidateValueSave = async (value: string) => {

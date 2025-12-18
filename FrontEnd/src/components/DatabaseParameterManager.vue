@@ -58,28 +58,21 @@
           </select>
         </div>
 
-        <div class="flex space-x-2">
-          <button
-            @click="importParameters"
-            :disabled="!selectedDatabase || importing"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ importing ? '导入中...' : '导入参数' }}
-          </button>
-        </div>
+
       </div>
       
       <!-- 搜索和过滤 -->
       <div class="space-y-4">
-        <!-- 第一行：搜索框 + 筛选/方案操作 -->
-        <div class="flex items-start space-x-4">
+        <!-- 筛选行：搜索框 + 三个下拉框 + 清空筛选按钮 -->
+        <div class="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+          <!-- 搜索框 -->
           <div class="flex-1 relative">
             <div class="relative">
               <input
                 v-model="searchKeyword"
                 type="text"
                 placeholder="搜索参数名、描述、候选值..."
-                class="w-full p-2 pl-10 border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                class="w-full p-2 pl-10 border border-gray-300 rounded focus:border-blue-500 focus:outline-none bg-white"
                 @input="onSearchInput"
                 @focus="showSuggestions = searchSuggestions.length > 0"
                 @blur="hideSuggestions"
@@ -106,45 +99,12 @@
               </div>
             </div>
           </div>
-          
-          <div class="flex flex-col space-y-3 w-72">
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                @click="clearFilters"
-                class="w-full py-2 border border-gray-300 rounded hover:bg-gray-100 text-sm"
-              >
-                清空筛选
-              </button>
-            </div>
-          </div>
-        </div>
 
-        <!-- 快速筛选标签 -->
-        <div class="flex items-center space-x-2 mb-3">
-          <span class="text-sm font-medium text-gray-700">快速筛选:</span>
-          <button
-            v-for="filter in quickFilters"
-            :key="filter.key"
-            @click="applyQuickFilter(filter)"
-            class="px-3 py-1 text-xs rounded-full border transition-colors"
-            :class="isQuickFilterActive(filter) ? 
-              'bg-blue-100 text-blue-800 border-blue-300' : 
-              'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'"
-          >
-            {{ filter.label }}
-            <span v-if="filter.count !== undefined" class="ml-1 text-xs opacity-75">
-              ({{ filter.count }})
-            </span>
-          </button>
-        </div>
-
-        <!-- 第二行：详细筛选选项 + 操作按钮 -->
-        <div class="flex items-center space-x-4">
-          <div class="w-48">
-            <label class="block text-sm font-medium mb-1">参数类别</label>
+          <!-- 参数类别 -->
+          <div class="w-36">
             <select 
               v-model="selectedCategory" 
-              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-sm bg-white"
               @change="loadParameters"
             >
               <option value="">所有类别</option>
@@ -153,16 +113,16 @@
                 :key="category" 
                 :value="category"
               >
-                {{ category }} ({{ getCategoryCount(category) }})
+                {{ category }}
               </option>
             </select>
           </div>
 
-          <div class="w-48">
-            <label class="block text-sm font-medium mb-1">设置范围</label>
+          <!-- 设置范围 -->
+          <div class="w-36">
             <select 
               v-model="selectedValueRange" 
-              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-sm bg-white"
               @change="loadParameters"
             >
               <option value="">所有范围</option>
@@ -171,258 +131,58 @@
                 :key="range" 
                 :value="range"
               >
-                {{ range }} ({{ getValueRangeCount(range) }})
+                {{ range }}
               </option>
             </select>
           </div>
 
-          <div class="w-48">
-            <label class="block text-sm font-medium mb-1">约束类型</label>
-            <select 
-              v-model="selectedConstraintType" 
-              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
-              @change="loadParameters"
-            >
-              <option value="">所有类型</option>
-              <option value="candidates">有候选值 ({{ getConstraintTypeCount('candidates') }})</option>
-              <option value="range">有范围限制 ({{ getConstraintTypeCount('range') }})</option>
-              <option value="both">有约束条件 ({{ getConstraintTypeCount('both') }})</option>
-              <option value="none">无约束 ({{ getConstraintTypeCount('none') }})</option>
-            </select>
-          </div>
-
-          <div class="w-32">
-            <label class="block text-sm font-medium mb-1">测试状态</label>
+          <!-- 测试状态 -->
+          <div class="w-28">
             <select 
               v-model="selectedTestStatus" 
-              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-sm bg-white"
               @change="loadParameters"
             >
               <option value="">全部</option>
-              <option value="true">启用测试 ({{ getTestStatusCount(true) }})</option>
-              <option value="false">禁用测试 ({{ getTestStatusCount(false) }})</option>
+              <option value="true">启用测试</option>
+              <option value="false">禁用测试</option>
             </select>
           </div>
 
-          <!-- 操作按钮：与select元素水平排列 -->
-          <div class="flex items-end space-x-2 ml-auto mt-4">
-            <button
-              @click="openSaveSchemeDialog"
-              class="py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-            >
-              保存配置
-            </button>
-            <button
-              @click="openSchemeListDialog"
-              class="py-2 px-4 border border-gray-400 text-gray-800 rounded hover:bg-gray-100 text-sm"
-            >
-              查看方案
-            </button>
-            <button
-              @click="resetAllParametersToDefault"
-              :disabled="parameters.length === 0 || resetting"
-              class="py-2 px-4 border rounded text-red-600 border-red-400 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            >
-              {{ resetting ? '重置参数中...' : '恢复默认' }}
-            </button>
-          </div>
+          <!-- 清空筛选按钮 -->
+          <button
+            @click="clearFilters"
+            class="py-2 px-3 border border-gray-300 rounded hover:bg-gray-100 text-sm whitespace-nowrap bg-white"
+          >
+            清空筛选
+          </button>
+        </div>
+
+        <!-- 操作按钮行 -->
+        <div class="flex justify-end space-x-2">
+          <button
+            @click="() => { console.log('按钮被点击'); saveConfiguration() }"
+            :disabled="parameters.length === 0 || saving"
+            class="py-2 px-4 border rounded text-green-600 border-green-400 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            {{ saving ? '保存中...' : '保存配置' }}
+          </button>
+          <button
+            @click="resetAllParametersToDefault"
+            :disabled="parameters.length === 0 || resetting"
+            class="py-2 px-4 border rounded text-red-600 border-red-400 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          >
+            {{ resetting ? '重置参数中...' : '恢复默认' }}
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- 数据迁移管理面板 -->
-    <div v-if="showMigrationPanel" class="mb-6 bg-white rounded-lg shadow-md border border-purple-200">
-      <div class="p-4 bg-purple-50 border-b border-purple-200">
-        <h3 class="text-lg font-semibold text-purple-800 flex items-center">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-          </svg>
-          数据迁移管理
-        </h3>
-        <p class="text-sm text-purple-600 mt-1">
-          将测试数据替换为真实的MySQL参数数据
-        </p>
-      </div>
 
-      <div class="p-4 space-y-4">
-        <!-- 迁移状态显示 -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="font-medium text-gray-900">迁移状态</h4>
-            <button
-              @click="refreshMigrationStatus"
-              class="text-sm text-blue-600 hover:text-blue-800"
-              :disabled="refreshingStatus"
-            >
-              {{ refreshingStatus ? '刷新中...' : '刷新状态' }}
-            </button>
-          </div>
 
-          <div v-if="migrationStatus" class="space-y-2">
-            <div class="flex items-center space-x-2">
-              <span class="text-sm font-medium">当前状态:</span>
-              <span 
-                class="px-2 py-1 text-xs rounded-full"
-                :class="getMigrationStatusClass(migrationStatus.status)"
-              >
-                {{ getMigrationStatusText(migrationStatus.status) }}
-              </span>
-            </div>
 
-            <div v-if="migrationStatus.lastMigrationTime" class="flex items-center space-x-2">
-              <span class="text-sm font-medium">上次迁移:</span>
-              <span class="text-sm text-gray-600">
-                {{ formatDateTime(migrationStatus.lastMigrationTime) }}
-              </span>
-            </div>
 
-            <div class="flex items-center space-x-2">
-              <span class="text-sm font-medium">参数总数:</span>
-              <span class="text-sm text-gray-600">{{ migrationStatus.totalParameters }}</span>
-            </div>
 
-            <div v-if="migrationStatus.categoryStats" class="mt-3">
-              <span class="text-sm font-medium">类别分布:</span>
-              <div class="flex flex-wrap gap-2 mt-1">
-                <span 
-                  v-for="(count, category) in migrationStatus.categoryStats" 
-                  :key="category"
-                  class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
-                >
-                  {{ category }}: {{ count }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="text-sm text-gray-500">
-            正在加载迁移状态...
-          </div>
-        </div>
-
-        <!-- 迁移操作按钮 -->
-        <div class="flex items-center space-x-3">
-          <button
-            @click="executeMigration"
-            :disabled="migrating || migrationStatus?.status === 'IN_PROGRESS'"
-            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ migrating ? '迁移中...' : '执行迁移' }}
-          </button>
-
-          <button
-            @click="validateMigration"
-            :disabled="validating"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ validating ? '验证中...' : '验证迁移' }}
-          </button>
-
-          <button
-            @click="rollbackMigration"
-            :disabled="rollingBack || migrationStatus?.status === 'READY'"
-            class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ rollingBack ? '回滚中...' : '回滚迁移' }}
-          </button>
-
-          <button
-            @click="cleanupBackup"
-            :disabled="cleaningUp"
-            class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ cleaningUp ? '清理中...' : '清理备份' }}
-          </button>
-        </div>
-
-        <!-- 迁移结果显示 -->
-        <div v-if="migrationResult" class="mt-4">
-          <div 
-            class="p-3 rounded-lg"
-            :class="migrationResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'"
-          >
-            <div class="flex items-center">
-              <svg 
-                class="w-5 h-5 mr-2"
-                :class="migrationResult.success ? 'text-green-600' : 'text-red-600'"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  v-if="migrationResult.success"
-                  stroke-linecap="round" 
-                  stroke-linejoin="round" 
-                  stroke-width="2" 
-                  d="M5 13l4 4L19 7"
-                ></path>
-                <path 
-                  v-else
-                  stroke-linecap="round" 
-                  stroke-linejoin="round" 
-                  stroke-width="2" 
-                  d="M6 18L18 6M6 6l12 12"
-                ></path>
-              </svg>
-              <span 
-                class="font-medium"
-                :class="migrationResult.success ? 'text-green-800' : 'text-red-800'"
-              >
-                {{ migrationResult.message }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 验证结果显示 -->
-        <div v-if="validationResult" class="mt-4">
-          <div 
-            class="p-3 rounded-lg"
-            :class="validationResult.isValid ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'"
-          >
-            <div class="flex items-start">
-              <svg 
-                class="w-5 h-5 mr-2 mt-0.5"
-                :class="validationResult.isValid ? 'text-green-600' : 'text-yellow-600'"
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  stroke-linecap="round" 
-                  stroke-linejoin="round" 
-                  stroke-width="2" 
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                ></path>
-              </svg>
-              <div class="flex-1">
-                <span 
-                  class="font-medium"
-                  :class="validationResult.isValid ? 'text-green-800' : 'text-yellow-800'"
-                >
-                  {{ validationResult.isValid ? '验证通过' : '发现问题' }}
-                </span>
-                
-                <div v-if="validationResult.issues && validationResult.issues.length > 0" class="mt-2">
-                  <ul class="text-sm text-yellow-700 space-y-1">
-                    <li v-for="issue in validationResult.issues" :key="issue" class="flex items-start">
-                      <span class="mr-1">•</span>
-                      <span>{{ issue }}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div class="mt-2 text-sm text-gray-600">
-                  <div>总参数数: {{ validationResult.totalParameters }}</div>
-                  <div>有候选值: {{ validationResult.parametersWithCandidates }}</div>
-                  <div>有范围约束: {{ validationResult.parametersWithRanges }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- 加载状态 -->
     <div v-if="loading" class="text-center py-8">
@@ -430,176 +190,7 @@
       <div class="mt-2 text-gray-600">加载中...</div>
     </div>
 
-    <!-- 参数方案管理弹窗：保存方案 -->
-    <div
-      v-if="saveSchemeDialogVisible"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
-    >
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-        <h3 class="text-lg font-semibold mb-4">保存当前参数为方案</h3>
-        <p class="text-sm text-gray-600 mb-4">
-          将当前参数列表中的参数默认值和“是否测试”状态保存为一个可复用的方案，仅保存在本地浏览器。
-        </p>
-        <div class="space-y-3">
-          <div>
-            <label class="block text-sm font-medium mb-1">方案名称</label>
-            <input
-              v-model="schemeName"
-              type="text"
-              placeholder="例如：高并发测试方案"
-              class="w-full p-2 border border-gray-300 rounded"
-              maxlength="50"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">方案描述</label>
-            <textarea
-              v-model="schemeDescription"
-              rows="3"
-              placeholder="为该方案写一句简短说明，便于后续识别和选择"
-              class="w-full p-2 border border-gray-300 rounded resize-none"
-              maxlength="200"
-            ></textarea>
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end space-x-3">
-          <button
-            @click="closeSaveSchemeDialog"
-            class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
-          >
-            取消
-          </button>
-          <button
-            @click="confirmSaveScheme"
-            :disabled="savingScheme"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ savingScheme ? '保存中...' : '保存方案' }}
-          </button>
-        </div>
-      </div>
-    </div>
 
-    <!-- 参数方案列表弹窗：查看/删除方案 -->
-    <div
-      v-if="schemeListDialogVisible"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
-    >
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold">已保存的参数方案</h3>
-          <button
-            @click="closeSchemeListDialog"
-            class="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div v-if="schemes.length === 0" class="text-center text-gray-500 py-6">
-          暂无已保存的参数方案，请先在数据库参数页面点击“保存参数方案”创建。
-        </div>
-
-        <div v-else class="max-h-96 overflow-y-auto border border-gray-200 rounded">
-          <table class="min-w-full text-sm">
-            <thead class="bg-gray-100">
-              <tr>
-                <th class="px-4 py-2 text-left border-b">方案名称</th>
-                <th class="px-4 py-2 text-left border-b">描述</th>
-                <th class="px-4 py-2 text-left border-b">创建时间</th>
-                <th class="px-4 py-2 text-center border-b">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="scheme in schemes"
-                :key="scheme.id"
-                class="hover:bg-gray-50"
-              >
-                <td class="px-4 py-2 border-b font-medium">
-                  {{ scheme.name }}
-                </td>
-                <td class="px-4 py-2 border-b max-w-xs truncate" :title="scheme.description">
-                  {{ scheme.description || '（无描述）' }}
-                </td>
-                <td class="px-4 py-2 border-b">
-                  {{ formatSchemeTime(scheme.createdAt) }}
-                </td>
-                <td class="px-4 py-2 border-b text-center space-x-2">
-                  <button
-                    @click="viewSchemeDescription(scheme)"
-                    class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
-                  >
-                    查看描述
-                  </button>
-                  <button
-                    @click="applyScheme(scheme)"
-                    :disabled="applyingSchemeId === scheme.id"
-                    class="px-2 py-1 text-xs border border-green-500 text-green-600 rounded hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {{ applyingSchemeId === scheme.id ? '应用中...' : '应用方案' }}
-                  </button>
-                  <button
-                    @click="deleteScheme(scheme)"
-                    class="px-2 py-1 text-xs border border-red-400 text-red-600 rounded hover:bg-red-50"
-                  >
-                    删除方案
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- 参数方案详情弹窗 -->
-    <div
-      v-if="schemeDetail"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40"
-    >
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold">方案详情</h3>
-          <button
-            @click="closeSchemeDetailDialog"
-            class="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div class="space-y-3 text-sm text-gray-700">
-          <div class="flex justify-between">
-            <span class="font-medium text-gray-900">方案名称</span>
-            <span>{{ schemeDetail?.name }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="font-medium text-gray-900">参数数量</span>
-            <span>{{ schemeDetail?.parameters.length }}</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="font-medium text-gray-900">创建时间</span>
-            <span>{{ formatSchemeTime(schemeDetail?.createdAt || '') }}</span>
-          </div>
-          <div>
-            <span class="block font-medium text-gray-900 mb-1">方案描述</span>
-            <div class="p-3 rounded border border-gray-200 bg-gray-50 text-gray-600 leading-relaxed whitespace-pre-wrap">
-              {{ schemeDetail?.description || '（无描述）' }}
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-6 flex justify-end">
-          <button
-            @click="closeSchemeDetailDialog"
-            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            我知道了
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- 参数表格 -->
     <div v-else-if="parameters.length > 0" class="bg-white rounded-lg shadow-md overflow-hidden">
@@ -777,7 +368,7 @@
     <div v-else class="text-center py-12">
       <div class="text-gray-500 text-lg">暂无参数数据</div>
       <div class="text-gray-400 text-sm mt-2">
-        请选择测试的数据库并点击"导入参数"
+        请选择测试的数据库
       </div>
     </div>
 
@@ -847,16 +438,7 @@ const quickFilters = ref([
 
 const activeQuickFilter = ref<string | null>(null)
 
-// 数据迁移相关状态
-const showMigrationPanel = ref(false)
-const migrationStatus = ref<any>(null)
-const migrationResult = ref<any>(null)
-const validationResult = ref<any>(null)
-const migrating = ref(false)
-const validating = ref(false)
-const rollingBack = ref(false)
-const cleaningUp = ref(false)
-const refreshingStatus = ref(false)
+
 
 const currentPage = ref(0)
 const pageSize = ref(20)
@@ -867,44 +449,13 @@ const loading = ref(false)
 const testing = ref(false)
 const importing = ref(false)
 const resetting = ref(false)
+const saving = ref(false)
 const updatingWeights = ref<Set<number>>(new Set())
 
 // 记录首次从后端加载时的"默认状态"，用于一键恢复
 const originalParameterSnapshot = ref<Record<number, { defaultValue: string; isTestDefault: boolean; weight: number }>>({})
 
-// 参数方案类型定义（仅在前端本地存储）
-interface ParameterSchemeItem {
-  id: number
-  defaultValue: string
-  isTestDefault: boolean
-  weight?: number
-}
 
-interface ParameterScheme {
-  id: string
-  name: string
-  description: string
-  createdAt: string
-  parameters: ParameterSchemeItem[]
-}
-
-const SCHEME_STORAGE_KEY = 'db-parameter-schemes'
-
-// 方案管理相关状态
-const schemes = ref<ParameterScheme[]>([])
-const schemeName = ref('')
-const schemeDescription = ref('')
-const savingScheme = ref(false)
-const applyingSchemeId = ref<string | null>(null)
-const deletingScheme = ref(false)
-
-// 弹窗显示状态
-const saveSchemeDialogVisible = ref(false)
-const schemeListDialogVisible = ref(false)
-const schemeDetail = ref<ParameterScheme | null>(null)
-const closeSchemeDetailDialog = () => {
-  schemeDetail.value = null
-}
 
 const message = ref({ text: '', type: 'info' as 'success' | 'error' | 'info' })
 
@@ -1080,6 +631,7 @@ const loadParameters = async () => {
       search: searchKeyword.value || undefined,
       category: selectedCategory.value || undefined,
       valueRange: selectedValueRange.value || undefined,
+      // 暂时不传递testStatus参数，后端暂不支持
     })
     
     // 每次从后端获取最新数据后，更新"默认状态"快照
@@ -1109,173 +661,59 @@ const loadParameters = async () => {
   }
 }
 
-// 本地加载/保存方案列表
-const loadSchemesFromStorage = () => {
-  try {
-    const raw = localStorage.getItem(SCHEME_STORAGE_KEY)
-    if (!raw) {
-      schemes.value = []
-      return
-    }
-    const parsed = JSON.parse(raw) as ParameterScheme[]
-    schemes.value = Array.isArray(parsed) ? parsed : []
-  } catch {
-    schemes.value = []
-  }
-}
 
-const saveSchemesToStorage = () => {
-  localStorage.setItem(SCHEME_STORAGE_KEY, JSON.stringify(schemes.value))
-}
 
 // 保存当前参数为一个新方案
-const saveCurrentParametersAsScheme = async (): Promise<boolean> => {
-  if (!schemeName.value.trim()) {
-    showMessage('请先填写方案名称', 'info')
-    return false
-  }
 
-  savingScheme.value = true
-  try {
-    // 保存“当前参数列表”作为方案（受当前搜索/筛选影响）
-    const allParams = parameters.value
-    if (!allParams.length) {
-      showMessage('当前没有可保存的参数', 'info')
-      return false
-    }
-
-    const items: ParameterSchemeItem[] = allParams.map((p) => ({
-      id: p.id,
-      defaultValue: p.defaultValue,
-      isTestDefault: p.isTestDefault,
-      weight: p.weight,
-    }))
-
-    const now = new Date()
-    const newScheme: ParameterScheme = {
-      id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
-      name: schemeName.value.trim(),
-      description: schemeDescription.value.trim(),
-      createdAt: now.toISOString(),
-      parameters: items,
-    }
-
-    schemes.value.unshift(newScheme)
-    saveSchemesToStorage()
-
-    // 检查是否正在测试，如果是则显示特殊的提示信息
-    if (currentTestStatus.value.text === '测试中') {
-      showMessage('已保存配置，重启测试生效', 'success')
-    } else {
-      showMessage('参数配置已保存成功', 'success')
-    }
-    schemeName.value = ''
-    schemeDescription.value = ''
-    return true
-  } catch (error) {
-    console.error('保存参数方案失败:', error)
-    showMessage('保存参数方案失败', 'error')
-    return false
-  } finally {
-    savingScheme.value = false
-  }
-}
-
-// 打开/关闭保存方案弹窗
-const openSaveSchemeDialog = () => {
-  schemeName.value = ''
-  schemeDescription.value = ''
-  saveSchemeDialogVisible.value = true
-}
-
-const closeSaveSchemeDialog = () => {
-  saveSchemeDialogVisible.value = false
-}
-
-// “保存方案”弹窗中的确认按钮逻辑
-const confirmSaveScheme = async () => {
-  const success = await saveCurrentParametersAsScheme()
-  if (success) {
-    saveSchemeDialogVisible.value = false
-  }
-}
 
 // 打开/关闭方案列表弹窗
-const openSchemeListDialog = () => {
-  schemeListDialogVisible.value = true
-}
 
-const closeSchemeListDialog = () => {
-  schemeListDialogVisible.value = false
-}
 
-// 在弹窗中“查看描述”
-const viewSchemeDescription = (scheme: ParameterScheme) => {
-  schemeDetail.value = scheme
-}
 
-// 在弹窗中删除指定方案
-const deleteScheme = (scheme: ParameterScheme) => {
-  if (!confirm(`确定要删除参数方案「${scheme.name}」吗？删除后无法恢复。`)) {
+// 保存配置到数据库
+const saveConfiguration = async () => {
+  console.log('saveConfiguration函数被调用')
+  console.log('parameters.value长度:', parameters.value.length)
+  console.log('parameters.value内容:', parameters.value)
+  if (!parameters.value.length) {
+    showMessage('当前没有可保存的参数', 'info')
     return
   }
 
-  deletingScheme.value = true
+  // 构造批量更新请求
+  const requests: UpdateParameterRequest[] = parameters.value
+    .map((param) => {
+      return {
+        id: param.id,
+        defaultValue: param.defaultValue,
+        isTestDefault: param.isTestDefault,
+        weight: param.weight,
+      } as UpdateParameterRequest
+    })
+
+  saving.value = true
   try {
-    schemes.value = schemes.value.filter((s) => s.id !== scheme.id)
-    saveSchemesToStorage()
-    if (schemeDetail.value?.id === scheme.id) {
-      schemeDetail.value = null
-    }
-    showMessage('方案已删除', 'success')
-  } finally {
-    deletingScheme.value = false
-  }
-}
-
-// 方案时间格式化
-const formatSchemeTime = (isoTime: string): string => {
-  if (!isoTime) return '-'
-  try {
-    const d = new Date(isoTime)
-    return d.toLocaleString('zh-CN')
-  } catch {
-    return isoTime
-  }
-}
-
-// 应用指定方案
-const applyScheme = async (scheme: ParameterScheme) => {
-  if (!scheme.parameters.length) {
-    showMessage('该方案暂无参数，无法应用', 'info')
-    return
-  }
-
-  if (!confirm(`确定要应用参数方案「${scheme.name}」吗？这将覆盖当前所有参数的默认值与是否测试状态。`)) {
-    return
-  }
-
-  const requests: UpdateParameterRequest[] = scheme.parameters.map((item) => ({
-    id: item.id,
-    defaultValue: item.defaultValue,
-    isTestDefault: item.isTestDefault,
-    weight: item.weight,
-  }))
-
-  applyingSchemeId.value = scheme.id
-  try {
-    await parameterApi.batchUpdateParameters(requests)
-    showMessage(`参数方案「${scheme.name}」已应用`, 'success')
+    console.log('保存配置请求数据:', requests)
+    console.log('调用batchUpdateParameters前')
+    const result = await parameterApi.batchUpdateParameters(requests)
+    console.log('保存配置成功结果:', result)
+    showMessage('保存配置成功', 'success')
+    // 重新加载，确保与后端完全一致
     await loadParameters()
-    schemeListDialogVisible.value = false
   } catch (error) {
-    console.error('应用参数方案失败:', error)
-    showMessage('应用参数方案失败', 'error')
+    console.error('保存配置失败:', error)
+    if (error instanceof Error) {
+      console.error('错误详情:', error.message)
+      console.error('错误堆栈:', error.stack)
+    } else {
+      console.error('未知错误类型:', typeof error, error)
+    }
+    showMessage(`保存配置失败: ${error instanceof Error ? error.message : '网络连接错误'}`, 'error')
   } finally {
-    applyingSchemeId.value = null
+    console.log('保存配置操作完成')
+    saving.value = false
   }
 }
-
 
 // 一键将当前所有参数恢复到“默认状态”
 const resetAllParametersToDefault = async () => {
@@ -1300,7 +738,7 @@ const resetAllParametersToDefault = async () => {
         defaultValue: snap.defaultValue,
         isTestDefault: snap.isTestDefault,
         weight: snap.weight,
-      }
+      } as UpdateParameterRequest
     })
     .filter((item): item is UpdateParameterRequest => item !== null)
 
@@ -1335,72 +773,87 @@ const resetAllParametersToDefault = async () => {
 }
 
 // 数据库选择变化
-// 数据库选择变化（完全标准化语法，无任何报错）
-const onDatabaseChange = () => {
+const onDatabaseChange = async () => {
     // 初始化变量
     let dbName = '';
     let dbVersion = '';
-if (!selectedDatabase.value) {
-    parameters.value = []
-    currentTestDb.value = { name: '', version: '' }
-    currentTestStatus.value = { text: '无', color: 'text-gray-500' }
     
-    // 新增1：清空本地存储
-    localStorage.setItem('selectedDb', JSON.stringify({ name: '未选择', version: '' }))
-    return
-  }
-
-  const [dbType, version] = selectedDatabase.value.split('-')
-  currentTestDb.value = {
-    name: getDatabaseDisplayName(dbType),
-    version: version
-  }
-  currentTestStatus.value = { text: '未开始', color: 'text-gray-500' }
-  
-  // 新增2：保存到本地存储（关键！）
-  localStorage.setItem('selectedDb', JSON.stringify({
-    name: currentTestDb.value.name,
-    version: currentTestDb.value.version
-  }))
-    // 判断是否选择了数据库
-    if (selectedDatabase.value) {
-        // 解析数据库类型和版本
-        const splitResult = selectedDatabase.value.split('-');
-        const dbType = splitResult[0];
-        dbVersion = splitResult[1] || '';
+    if (!selectedDatabase.value) {
+        parameters.value = []
+        currentTestDb.value = { name: '', version: '' }
+        currentTestStatus.value = { text: '无', color: 'text-gray-500' }
         
-        // 获取数据库显示名称
-        dbName = getDatabaseDisplayName(dbType);
+        // 清空本地存储
+        localStorage.setItem('selectedDb', JSON.stringify({ name: '未选择', version: '' }))
         
-        // 更新页面内状态栏
-        currentTestDb.value = {
-            name: dbName,
-            version: dbVersion
-        };
-        currentTestStatus.value = {
-            text: '未开始',
-            color: 'text-gray-500'
-        };
-    } else {
-        // 未选择数据库时清空状态
-        parameters.value = [];
-        currentTestDb.value = {
-            name: '',
-            version: ''
-        };
-        currentTestStatus.value = {
-            text: '无',
-            color: 'text-gray-500'
-        };
+        // 触发全局事件，同步到顶部状态栏
+        window.dispatchEvent(new CustomEvent('dbChanged', {
+            detail: {
+                name: '未选择',
+                version: ''
+            }
+        }));
+        
+        return
     }
 
-    // 核心：触发全局事件，同步到顶部状态栏
+    // 解析数据库类型和版本
+    const [dbType, version] = selectedDatabase.value.split('-')
+    dbName = getDatabaseDisplayName(dbType);
+    dbVersion = version || '';
+    
+    // 更新页面内状态栏
+    currentTestDb.value = {
+        name: dbName,
+        version: dbVersion
+    };
+    
+    // 保存到本地存储
+    localStorage.setItem('selectedDb', JSON.stringify({
+        name: currentTestDb.value.name,
+        version: currentTestDb.value.version
+    }));
+    
+    // 触发全局事件，同步到顶部状态栏
     window.dispatchEvent(new CustomEvent('dbChanged', {
         detail: {
-            name: dbName || '未选择',
+            name: dbName,
             version: dbVersion
         }
     }));
+    
+    // 自动加载参数
+    importing.value = true;
+    try {
+        // 检查是否支持该数据库的参数数据
+        if (!isDatabaseSupported(dbType, dbVersion)) {
+            // 对于不支持的数据库，显示暂无参数数据
+            parameters.value = [];
+            currentTestStatus.value = {
+                text: '无参数数据',
+                color: 'text-orange-600'
+            };
+            showMessage(`暂无 ${dbName} ${dbVersion} 的参数数据`, 'info');
+            return;
+        }
+
+        // 对于支持的数据库，加载参数数据
+        await loadParameters();
+        currentTestStatus.value = {
+            text: '测试中',
+            color: 'text-blue-600'
+        };
+        showMessage(`已加载 ${dbName} ${dbVersion} 的参数列表`, 'success');
+    } catch (error) {
+        console.error('加载参数失败:', error);
+        showMessage('加载参数失败', 'error');
+        currentTestStatus.value = {
+            text: '加载失败',
+            color: 'text-red-600'
+        };
+    } finally {
+        importing.value = false;
+    }
 };
 
 // 获取数据库显示名称（标准化格式）
@@ -1428,10 +881,10 @@ const initializeStatusBar = () => {
     text: '无',
     color: 'text-gray-500'
   }
-  currentTestTime.value = ref('无')
-  currentParamCombo.value = ref('无')
-  currentCoverage.value = ref('0%')
-  currentBugCount.value = ref('0')
+  currentTestTime.value = '无'
+  currentParamCombo.value = '无'
+  currentCoverage.value = '0%'
+  currentBugCount.value = '0'
 }
 
 // 数据库配置变化（保留原有逻辑）
@@ -1460,42 +913,7 @@ const testConnection = async () => {
   }
 }
 
-// 导入参数
-const importParameters = async () => {
-  if (!selectedDatabase.value) return
 
-  importing.value = true
-  try {
-    // 解析选择的数据库信息
-    const [dbType, version] = selectedDatabase.value.split('-')
-
-    // 检查是否支持该数据库的参数数据（目前只有MySQL 9.5.0有参数数据）
-    if (!isDatabaseSupported(dbType, version)) {
-      // 对于不支持的数据库，显示暂无参数数据
-      parameters.value = []
-      currentTestStatus.value = {
-        text: '无参数数据',
-        color: 'text-orange-600'
-      }
-      showMessage(`暂无 ${getDatabaseDisplayName(dbType)} ${version} 的参数数据`, 'info')
-      return
-    }
-
-    // 对于MySQL 9.5.0，加载参数数据
-    await loadParameters()
-    currentTestStatus.value = {
-      text: '测试中',
-      color: 'text-blue-600'
-    }
-    showMessage(`已加载 ${getDatabaseDisplayName(dbType)} ${version} 的参数列表`, 'success')
-
-  } catch (error) {
-    console.error('导入参数失败:', error)
-    showMessage('导入参数失败', 'error')
-  } finally {
-    importing.value = false
-  }
-}
 
 // 更新参数值
 const updateParameterValue = async (param: ParameterItem, value: string) => {
@@ -1752,153 +1170,13 @@ const getTestStatusCount = (status: boolean): number => {
   return parameters.value.filter(p => p.isTestDefault === status).length
 }
 
-// 数据迁移相关方法
-const refreshMigrationStatus = async () => {
-  refreshingStatus.value = true
-  try {
-    migrationStatus.value = await migrationApi.getMigrationStatus()
-  } catch (error) {
-    console.error('获取迁移状态失败:', error)
-    showMessage('获取迁移状态失败', 'error')
-  } finally {
-    refreshingStatus.value = false
-  }
-}
 
-const executeMigration = async () => {
-  if (!confirm('确定要执行数据迁移吗？这将替换当前的所有参数数据。')) {
-    return
-  }
 
-  migrating.value = true
-  migrationResult.value = null
-  
-  try {
-    const result = await migrationApi.executeMigration()
-    migrationResult.value = result
-    
-    if (result.success) {
-      showMessage('数据迁移成功完成', 'success')
-      await Promise.all([
-        loadParameters(),
-        loadCategories(),
-        loadValueRanges(),
-        refreshMigrationStatus()
-      ])
-    } else {
-      showMessage(`数据迁移失败: ${result.message}`, 'error')
-    }
-  } catch (error) {
-    console.error('执行迁移失败:', error)
-    showMessage('执行迁移失败', 'error')
-    migrationResult.value = { success: false, message: '迁移过程中发生错误' }
-  } finally {
-    migrating.value = false
-  }
-}
 
-const validateMigration = async () => {
-  validating.value = true
-  validationResult.value = null
-  
-  try {
-    validationResult.value = await migrationApi.validateMigration()
-    
-    if (validationResult.value.isValid) {
-      showMessage('迁移验证通过', 'success')
-    } else {
-      showMessage(`发现 ${validationResult.value.issues.length} 个问题`, 'info')
-    }
-  } catch (error) {
-    console.error('验证迁移失败:', error)
-    showMessage('验证迁移失败', 'error')
-  } finally {
-    validating.value = false
-  }
-}
 
-const rollbackMigration = async () => {
-  if (!confirm('确定要回滚数据迁移吗？这将恢复到迁移前的状态。')) {
-    return
-  }
 
-  rollingBack.value = true
-  migrationResult.value = null
-  
-  try {
-    const result = await migrationApi.rollbackMigration()
-    migrationResult.value = result
-    
-    if (result.success) {
-      showMessage('数据迁移回滚成功', 'success')
-      await Promise.all([
-        loadParameters(),
-        loadCategories(),
-        loadValueRanges(),
-        refreshMigrationStatus()
-      ])
-    } else {
-      showMessage(`回滚失败: ${result.message}`, 'error')
-    }
-  } catch (error) {
-    console.error('回滚迁移失败:', error)
-    showMessage('回滚迁移失败', 'error')
-    migrationResult.value = { success: false, message: '回滚过程中发生错误' }
-  } finally {
-    rollingBack.value = false
-  }
-}
 
-const cleanupBackup = async () => {
-  if (!confirm('确定要清理备份数据吗？清理后将无法回滚。')) {
-    return
-  }
 
-  cleaningUp.value = true
-  
-  try {
-    const result = await migrationApi.cleanupMigrationBackup()
-    
-    if (result.success) {
-      showMessage('备份数据清理成功', 'success')
-      await refreshMigrationStatus()
-    } else {
-      showMessage(`清理失败: ${result.message}`, 'error')
-    }
-  } catch (error) {
-    console.error('清理备份失败:', error)
-    showMessage('清理备份失败', 'error')
-  } finally {
-    cleaningUp.value = false
-  }
-}
-
-// 工具方法
-const getMigrationStatusClass = (status: string): string => {
-  const classMap: Record<string, string> = {
-    'READY': 'bg-gray-100 text-gray-800',
-    'IN_PROGRESS': 'bg-blue-100 text-blue-800',
-    'COMPLETED': 'bg-green-100 text-green-800',
-    'FAILED': 'bg-red-100 text-red-800',
-    'ROLLING_BACK': 'bg-yellow-100 text-yellow-800',
-    'ROLLED_BACK': 'bg-orange-100 text-orange-800',
-    'ROLLBACK_FAILED': 'bg-red-100 text-red-800'
-  }
-  return classMap[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getMigrationStatusText = (status: string): string => {
-  const textMap: Record<string, string> = {
-    'READY': '准备就绪',
-    'IN_PROGRESS': '迁移中',
-    'COMPLETED': '已完成',
-    'FAILED': '失败',
-    'ROLLING_BACK': '回滚中',
-    'ROLLED_BACK': '已回滚',
-    'ROLLBACK_FAILED': '回滚失败'
-  }
-  return textMap[status] || status
-}
 
 const formatDateTime = (dateTimeStr: string): string => {
   try {
@@ -1921,9 +1199,6 @@ const onPageChange = (page: number) => {
 
 // 组件挂载
 onMounted(async () => {
-  // 先从本地加载已保存的参数方案
-  loadSchemesFromStorage()
-
   // 初始化状态栏
   initializeStatusBar()
 
@@ -1931,8 +1206,7 @@ onMounted(async () => {
     loadDatabaseConfigs(),
     loadCategories(),
     loadValueRanges(),
-    loadParameters(),
-    refreshMigrationStatus()
+    loadParameters()
   ])
 })
 </script>

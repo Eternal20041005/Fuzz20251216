@@ -24,6 +24,9 @@ export async function apiRequest<T>(
     options: RequestInit = {}
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
+    console.log('API请求URL:', url)
+    console.log('API请求选项:', options)
+    console.log('API请求数据:', options.body ? JSON.parse(options.body as string) : null)
 
     const defaultOptions: RequestInit = {
         headers: {
@@ -35,15 +38,20 @@ export async function apiRequest<T>(
 
     try {
         const response = await fetch(url, defaultOptions)
+        console.log('API响应状态:', response.status)
+        console.log('API响应状态文本:', response.statusText)
 
         if (!response.ok) {
             let errorMessage = `HTTP ${response.status}: ${response.statusText}`
 
             try {
                 const errorData = await response.json()
+                console.log('API错误响应数据:', errorData)
                 errorMessage = errorData.message || errorMessage
             } catch {
                 // 忽略JSON解析错误，使用默认错误消息
+                const errorText = await response.text()
+                console.log('API错误响应文本:', errorText)
             }
 
             throw new ApiError(errorMessage, response.status)
@@ -51,20 +59,30 @@ export async function apiRequest<T>(
 
         // 处理204 No Content响应
         if (response.status === 204) {
+            console.log('API响应: 204 No Content')
             return null as T
         }
 
-        return await response.json()
+        const responseData = await response.json()
+        console.log('API响应数据:', responseData)
+        return responseData
     } catch (error) {
+        console.error('API请求错误:', error)
         if (error instanceof ApiError) {
             throw error
         }
 
         // 网络错误或其他错误
-        throw new ApiError(
-            error instanceof Error ? error.message : '网络请求失败',
-            0
-        )
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+            // 这是真正的网络连接错误
+            throw new ApiError('网络连接错误', 0)
+        } else {
+            // 其他类型的错误
+            throw new ApiError(
+                error instanceof Error ? error.message : '未知错误',
+                0
+            )
+        }
     }
 }
 

@@ -116,6 +116,7 @@ export interface ParameterSearchParams {
     search?: string
     category?: string
     valueRange?: string
+    testStatus?: boolean | string
 }
 
 export interface ParameterStats {
