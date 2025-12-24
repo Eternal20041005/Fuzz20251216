@@ -6,6 +6,7 @@ com\fuzz\service\impl\ParameterReaderServiceImpl$1.class
 com\fuzz\service\impl\DatabaseConnectionServiceImpl.class
 com\fuzz\controller\BugReportController.class
 com\fuzz\controller\ParameterController.class
+com\fuzz\dto\DbParameterDto.class
 com\fuzz\entity\TestCase.class
 com\fuzz\controller\DbParameterController.class
 com\fuzz\entity\FuzzTestConfig.class
@@ -35,12 +36,14 @@ com\fuzz\service\impl\TestCaseServiceImpl.class
 com\fuzz\service\impl\BugReportServiceImpl.class
 com\fuzz\config\WebSocketConfig.class
 com\fuzz\controller\HealthController.class
+com\fuzz\service\impl\DbParameterServiceImpl.class
 com\fuzz\entity\DatabaseConfig.class
 com\fuzz\entity\ParameterTemplate.class
 com\fuzz\config\CacheConfig.class
 com\fuzz\dto\BatchUpdateResult.class
 com\fuzz\FuzzBackendApplication.class
 com\fuzz\dto\ParameterTemplateMapper.class
+com\fuzz\service\DbParameterService.class
 com\fuzz\repository\BugReportRepository.class
 com\fuzz\config\CorsConfig.class
 com\fuzz\service\BugReportService.class

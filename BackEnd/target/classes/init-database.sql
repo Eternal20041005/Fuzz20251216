@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS db_parameter (
     default_value VARCHAR(255) COMMENT '参数默认值',
     value_range VARCHAR(500) COMMENT '参数取值范围/选项',
     weight DECIMAL(10,4) NOT NULL COMMENT '参数权重',
+    coverage DECIMAL(5,2) DEFAULT 0.00 COMMENT '代码覆盖率',
     is_test BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否测试',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -137,73 +138,73 @@ VALUES
 ('Local MySQL Test', 'MySQL', 'jdbc:mysql://localhost:3306/fuzz_testing_db', 'root', '123456', 'UNTESTED'),
 ('Sample PostgreSQL', 'PostgreSQL', 'jdbc:postgresql://localhost:5432/testdb', 'postgres', '123456', 'UNTESTED');
 
--- 插入真实的MySQL参数数据（基于param.txt）
-INSERT IGNORE INTO parameter_template (param_name, description, category, default_value, param_type, is_test_default, min_value, max_value, allowed_values, value_range) VALUES
+-- 插入真实的MySQL参数数据到 db_parameter 表
+INSERT IGNORE INTO db_parameter (db_type, param_name, param_type, description, default_value, value_range, weight, is_test) VALUES
 -- InnoDB相关参数
-('bulk_insert_buffer_size', 'MyISAM表批量插入缓冲区大小', 'MEMORY', '8388608', 'INTEGER', true, '0', '20971520', '["0", "20971520"]', 'Both'),
-('innodb_adaptive_hash_index', 'InnoDB自适应哈希索引', 'INNODB', 'ON', 'BOOLEAN', true, null, null, '["OFF", "ON"]', 'Global'),
-('innodb_change_buffering', 'InnoDB变更缓冲', 'INNODB', 'all', 'STRING', true, null, null, '["none", "all"]', 'Global'),
-('innodb_cmp_per_index_enabled', 'InnoDB每索引压缩统计', 'INNODB', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Global'),
-('innodb_ddl_threads', 'InnoDB DDL线程数', 'INNODB', '4', 'INTEGER', true, '1', '4', '["1", "2", "3", "4"]', 'Session'),
-('innodb_file_per_table', 'InnoDB每表一个文件', 'INNODB', 'ON', 'BOOLEAN', true, null, null, '["OFF", "ON"]', 'Global'),
-('innodb_flush_neighbors', 'InnoDB刷新邻居页面', 'INNODB', '1', 'STRING', true, null, null, '["1", "2"]', 'Global'),
-('innodb_max_dirty_pages_pct', 'InnoDB最大脏页百分比', 'INNODB', '90', 'DECIMAL', true, '0', '99.99', '["0", "10", "50", "90"]', 'Global'),
-('innodb_max_dirty_pages_pct_lwm', 'InnoDB脏页低水位标记', 'INNODB', '10', 'DECIMAL', true, '0', '99.99', '["0", "5", "10"]', 'Global'),
-('innodb_random_read_ahead', 'InnoDB随机预读', 'INNODB', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Global'),
-('innodb_read_ahead_threshold', 'InnoDB预读阈值', 'INNODB', '56', 'INTEGER', true, '0', '64', '["0", "8", "16", "32", "56"]', 'Global'),
-('innodb_stats_auto_recalc', 'InnoDB统计自动重算', 'INNODB', 'ON', 'BOOLEAN', true, null, null, '["OFF", "ON"]', 'Global'),
-('innodb_stats_method', 'InnoDB统计方法', 'INNODB', 'nulls_equal', 'STRING', true, null, null, '["nulls_unequal", "nulls_ignored", "nulls_equal"]', 'Global'),
-('innodb_stats_persistent_sample_pages', 'InnoDB持久化统计采样页数', 'INNODB', '20', 'INTEGER', true, '1', '1000', '["1", "10", "20"]', 'Global'),
-('innodb_use_fdatasync', 'InnoDB使用fdatasync', 'INNODB', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Global'),
+('mysql', 'bulk_insert_buffer_size', 'Integer', 'MyISAM表批量插入缓冲区大小', '8388608', '0-20971520', 5.0, true),
+('mysql', 'innodb_adaptive_hash_index', 'Boolean', 'InnoDB自适应哈希索引', 'ON', 'OFF,ON', 5.0, true),
+('mysql', 'innodb_change_buffering', 'Enumeration', 'InnoDB变更缓冲', 'all', 'none,all', 5.0, true),
+('mysql', 'innodb_cmp_per_index_enabled', 'Boolean', 'InnoDB每索引压缩统计', 'OFF', 'ON,OFF', 5.0, true),
+('mysql', 'innodb_ddl_threads', 'Integer', 'InnoDB DDL线程数', '4', '1-4', 5.0, true),
+('mysql', 'innodb_file_per_table', 'Boolean', 'InnoDB每表一个文件', 'ON', 'OFF,ON', 5.0, true),
+('mysql', 'innodb_flush_neighbors', 'Enumeration', 'InnoDB刷新邻居页面', '1', '1,2', 5.0, true),
+('mysql', 'innodb_max_dirty_pages_pct', 'Numeric', 'InnoDB最大脏页百分比', '90', '0-99.99', 5.0, true),
+('mysql', 'innodb_max_dirty_pages_pct_lwm', 'Numeric', 'InnoDB脏页低水位标记', '10', '0-99.99', 5.0, true),
+('mysql', 'innodb_random_read_ahead', 'Boolean', 'InnoDB随机预读', 'OFF', 'ON,OFF', 5.0, true),
+('mysql', 'innodb_read_ahead_threshold', 'Integer', 'InnoDB预读阈值', '56', '0-64', 5.0, true),
+('mysql', 'innodb_stats_auto_recalc', 'Boolean', 'InnoDB统计自动重算', 'ON', 'OFF,ON', 5.0, true),
+('mysql', 'innodb_stats_method', 'Enumeration', 'InnoDB统计方法', 'nulls_equal', 'nulls_unequal,nulls_ignored,nulls_equal', 5.0, true),
+('mysql', 'innodb_stats_persistent_sample_pages', 'Integer', 'InnoDB持久化统计采样页数', '20', '1-1000', 5.0, true),
+('mysql', 'innodb_use_fdatasync', 'Boolean', 'InnoDB使用fdatasync', 'OFF', 'ON,OFF', 5.0, true),
 
 -- 连接和并发参数
-('concurrent_insert', '并发插入模式', 'CONNECTION', '1', 'STRING', true, null, null, '["0", "1", "2"]', 'Global'),
-('foreign_key_checks', '外键检查', 'CONNECTION', '1', 'BOOLEAN', true, null, null, '["0", "1"]', 'Both'),
+('mysql', 'concurrent_insert', 'Enumeration', '并发插入模式', '1', '0,1,2', 5.0, true),
+('mysql', 'foreign_key_checks', 'Boolean', '外键检查', '1', '0,1', 5.0, true),
 
 -- 存储引擎参数
-('default_storage_engine', '默认存储引擎', 'ENGINE', 'InnoDB', 'STRING', true, null, null, '["MyISAM", "InnoDB"]', 'Both'),
-('delay_key_write', '延迟键写入', 'ENGINE', 'ON', 'STRING', true, null, null, '["OFF", "ALL"]', 'Global'),
+('mysql', 'default_storage_engine', 'Enumeration', '默认存储引擎', 'InnoDB', 'MyISAM,InnoDB', 5.0, true),
+('mysql', 'delay_key_write', 'Enumeration', '延迟键写入', 'ON', 'OFF,ALL', 5.0, true),
 
 -- 查询优化参数
-('eq_range_index_dive_limit', '等值范围索引深入限制', 'OPTIMIZER', '200', 'INTEGER', true, '0', '4294967295', '["0", "2", "10", "200"]', 'Both'),
-('group_concat_max_len', 'GROUP_CONCAT最大长度', 'OPTIMIZER', '1024', 'INTEGER', true, '4', '18446744073709551615', '["4", "64", "1024"]', 'Global'),
-('optimizer_prune_level', '优化器修剪级别', 'OPTIMIZER', '1', 'INTEGER', true, null, null, '["0", "1"]', 'Both'),
-('optimizer_search_depth', '优化器搜索深度', 'OPTIMIZER', '62', 'INTEGER', true, '0', '62', '["0", "4", "32", "62"]', 'Both'),
-('optimizer_switch', '优化器开关', 'OPTIMIZER', 'index_merge=on,index_merge_union=on', 'STRING', false, null, null, null, 'Both'),
+('mysql', 'eq_range_index_dive_limit', 'Integer', '等值范围索引深入限制', '200', '0-4294967295', 5.0, true),
+('mysql', 'group_concat_max_len', 'Integer', 'GROUP_CONCAT最大长度', '1024', '4-18446744073709551615', 5.0, true),
+('mysql', 'optimizer_prune_level', 'Integer', '优化器修剪级别', '1', '0,1', 5.0, true),
+('mysql', 'optimizer_search_depth', 'Integer', '优化器搜索深度', '62', '0-62', 5.0, true),
+('mysql', 'optimizer_switch', 'Set', '优化器开关', 'index_merge=on,index_merge_union=on', '', 5.0, false),
 
 -- 缓冲区参数
-('join_buffer_size', '连接缓冲区大小', 'MEMORY', '262144', 'INTEGER', true, '128', '4294967295', '["128", "262144", "1048576"]', 'Both'),
-('key_buffer_size', '键缓冲区大小', 'MEMORY', '8388608', 'INTEGER', true, '4096', '4294967295', '["4096", "8388608", "16777216"]', 'Global'),
-('read_buffer_size', '读缓冲区大小', 'MEMORY', '131072', 'INTEGER', true, '8192', '2147483647', '["8192", "131072", "262144"]', 'Both'),
-('read_rnd_buffer_size', '随机读缓冲区大小', 'MEMORY', '262144', 'INTEGER', true, '1', '2147483647', '["1", "1024", "262144"]', 'Both'),
-('sort_buffer_size', '排序缓冲区大小', 'MEMORY', '262144', 'INTEGER', true, '32768', '4294967295', '["32768", "262144", "1048576"]', 'Both'),
-('preload_buffer_size', '预加载缓冲区大小', 'MEMORY', '32768', 'INTEGER', true, '1024', '1073741824', '["1024", "32768", "65536"]', 'Both'),
-('query_alloc_block_size', '查询分配块大小', 'MEMORY', '8192', 'INTEGER', true, '1024', '4294967295', '["1024", "8192", "16384"]', 'Both'),
+('mysql', 'join_buffer_size', 'Integer', '连接缓冲区大小', '262144', '128-4294967295', 5.0, true),
+('mysql', 'key_buffer_size', 'Integer', '键缓冲区大小', '8388608', '4096-4294967295', 5.0, true),
+('mysql', 'read_buffer_size', 'Integer', '读缓冲区大小', '131072', '8192-2147483647', 5.0, true),
+('mysql', 'read_rnd_buffer_size', 'Integer', '随机读缓冲区大小', '262144', '1-2147483647', 5.0, true),
+('mysql', 'sort_buffer_size', 'Integer', '排序缓冲区大小', '262144', '32768-4294967295', 5.0, true),
+('mysql', 'preload_buffer_size', 'Integer', '预加载缓冲区大小', '32768', '1024-1073741824', 5.0, true),
+('mysql', 'query_alloc_block_size', 'Integer', '查询分配块大小', '8192', '1024-4294967295', 5.0, true),
 
 -- MyISAM参数
-('myisam_data_pointer_size', 'MyISAM数据指针大小', 'MYISAM', '6', 'INTEGER', true, '2', '7', '["2", "3", "4", "5", "6", "7"]', 'Global'),
-('myisam_max_sort_file_size', 'MyISAM最大排序文件大小', 'MYISAM', '9223372036853727232', 'INTEGER', true, '0', '9223372036853727232', '["0", "128", "1024", "9223372036853727232"]', 'Global'),
-('myisam_sort_buffer_size', 'MyISAM排序缓冲区大小', 'MYISAM', '8388608', 'INTEGER', true, '4096', '4294967295', '["4096", "8388608", "16777216"]', 'Both'),
-('myisam_stats_method', 'MyISAM统计方法', 'MYISAM', 'nulls_unequal', 'STRING', true, null, null, '["nulls_equal", "nulls_ignored", "nulls_unequal"]', 'Both'),
-('myisam_use_mmap', 'MyISAM使用内存映射', 'MYISAM', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Global'),
+('mysql', 'myisam_data_pointer_size', 'Integer', 'MyISAM数据指针大小', '6', '2-7', 5.0, true),
+('mysql', 'myisam_max_sort_file_size', 'Integer', 'MyISAM最大排序文件大小', '9223372036853727232', '0-9223372036853727232', 5.0, true),
+('mysql', 'myisam_sort_buffer_size', 'Integer', 'MyISAM排序缓冲区大小', '8388608', '4096-4294967295', 5.0, true),
+('mysql', 'myisam_stats_method', 'Enumeration', 'MyISAM统计方法', 'nulls_unequal', 'nulls_equal,nulls_ignored,nulls_unequal', 5.0, true),
+('mysql', 'myisam_use_mmap', 'Boolean', 'MyISAM使用内存映射', 'OFF', 'ON,OFF', 5.0, true),
 
 -- 系统参数
-('low_priority_updates', '低优先级更新', 'SYSTEM', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Both'),
-('max_seeks_for_key', '键的最大查找次数', 'SYSTEM', '4294967295', 'INTEGER', true, '1', '4294967295', '["1", "4", "100", "4294967295"]', 'Both'),
-('max_sort_length', '最大排序长度', 'SYSTEM', '1024', 'INTEGER', true, '4', '8388608', '["4", "1024", "8192"]', 'Both'),
-('max_sp_recursion_depth', '存储过程最大递归深度', 'SYSTEM', '0', 'INTEGER', true, '0', '255', '["0", "5", "10", "255"]', 'Both'),
-('range_optimizer_max_mem_size', '范围优化器最大内存大小', 'SYSTEM', '8388608', 'INTEGER', true, '0', '18446744073709551615', '["0", "1048576", "8388608"]', 'Both'),
-('read_only', '只读模式', 'SYSTEM', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Global'),
-('regexp_stack_limit', '正则表达式栈限制', 'SYSTEM', '8000000', 'INTEGER', true, '0', '2147483647', '["0", "1024", "8000000"]', 'Global'),
-('rewriter_enabled', '查询重写器启用', 'SYSTEM', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Global'),
-('table_open_cache', '表打开缓存', 'SYSTEM', '4000', 'INTEGER', true, '1', '524288', '["1", "8", "100", "4000"]', 'Global'),
+('mysql', 'low_priority_updates', 'Boolean', '低优先级更新', 'OFF', 'ON,OFF', 5.0, true),
+('mysql', 'max_seeks_for_key', 'Integer', '键的最大查找次数', '4294967295', '1-4294967295', 5.0, true),
+('mysql', 'max_sort_length', 'Integer', '最大排序长度', '1024', '4-8388608', 5.0, true),
+('mysql', 'max_sp_recursion_depth', 'Integer', '存储过程最大递归深度', '0', '0-255', 5.0, true),
+('mysql', 'range_optimizer_max_mem_size', 'Integer', '范围优化器最大内存大小', '8388608', '0-18446744073709551615', 5.0, true),
+('mysql', 'read_only', 'Boolean', '只读模式', 'OFF', 'ON,OFF', 5.0, true),
+('mysql', 'regexp_stack_limit', 'Integer', '正则表达式栈限制', '8000000', '0-2147483647', 5.0, true),
+('mysql', 'rewriter_enabled', 'Boolean', '查询重写器启用', 'OFF', 'ON,OFF', 5.0, false),
+('mysql', 'table_open_cache', 'Integer', '表打开缓存', '4000', '1-524288', 5.0, true),
 
 -- SQL模式参数
-('sql_auto_is_null', 'SQL自动IS NULL', 'SQL_MODE', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Both'),
-('sql_big_selects', 'SQL大查询', 'SQL_MODE', 'ON', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Both'),
-('sql_buffer_result', 'SQL缓冲结果', 'SQL_MODE', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Both'),
-('sql_generate_invisible_primary_key', 'SQL生成不可见主键', 'SQL_MODE', 'OFF', 'BOOLEAN', true, null, null, '["ON", "OFF"]', 'Both'),
-('sql_mode', 'SQL模式', 'SQL_MODE', 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION', 'STRING', true, null, null, '["", "ONLY_FULL_GROUP_BY", "STRICT_TRANS_TABLES", "NO_ZERO_IN_DATE", "NO_ZERO_DATE", "ERROR_FOR_DIVISION_BY_ZERO", "NO_ENGINE_SUBSTITUTION"]', 'Both');
+('mysql', 'sql_auto_is_null', 'Boolean', 'SQL自动IS NULL', 'OFF', 'ON,OFF', 5.0, true),
+('mysql', 'sql_big_selects', 'Boolean', 'SQL大查询', 'ON', 'ON,OFF', 5.0, true),
+('mysql', 'sql_buffer_result', 'Boolean', 'SQL缓冲结果', 'OFF', 'ON,OFF', 5.0, true),
+('mysql', 'sql_generate_invisible_primary_key', 'Boolean', 'SQL生成不可见主键', 'OFF', 'ON,OFF', 5.0, true),
+('mysql', 'sql_mode', 'Set', 'SQL模式', 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION', 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION', 5.0, false);
 
 -- 验证数据
 SELECT 'Database Configs:' as info;
@@ -330,6 +331,15 @@ INSERT IGNORE INTO fuzz_config (
     'default', '系统默认模糊测试配置',
     'TLP', 3, 100, 30, -1, 10000, 30, 0, 'sqlancer', 'sqlancer', '', -1
 );
+
+-- 修复现有数据的参数类型（确保使用标准MySQL类型名称）
+UPDATE db_parameter SET param_type = 'Integer' WHERE param_type = 'INTEGER';
+UPDATE db_parameter SET param_type = 'Boolean' WHERE param_type = 'BOOLEAN';
+UPDATE db_parameter SET param_type = 'Numeric' WHERE param_type IN ('DECIMAL', 'DOUBLE', 'FLOAT');
+UPDATE db_parameter SET param_type = 'String' WHERE param_type IN ('STRING', 'VARCHAR', 'TEXT');
+UPDATE db_parameter SET param_type = 'Enumeration' WHERE param_type = 'ENUM';
+UPDATE db_parameter SET param_type = 'Set' WHERE param_type = 'SET';
+
 
 -- 显示初始化时间
 SELECT 'Database initialized at:' as info, NOW() as timestamp;
