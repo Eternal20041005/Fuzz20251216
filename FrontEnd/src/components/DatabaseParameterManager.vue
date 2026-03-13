@@ -1,38 +1,5 @@
 <template>
   <div class="database-parameter-manager">
-    <!-- 状态栏 -->
-    <div class="mb-4 bg-gray-50 rounded-lg p-4 border">
-      <div class="grid grid-cols-2 md:grid-cols-7 gap-4 text-sm">
-        <div>
-          <span class="font-medium text-gray-700">当前数据库：</span>
-          <span class="text-gray-900">{{ currentTestDb.name || '无' }}</span>
-        </div>
-        <div>
-          <span class="font-medium text-gray-700">版本：</span>
-          <span class="text-gray-900">{{ currentTestDb.version || '无' }}</span>
-        </div>
-        <div>
-          <span class="font-medium text-gray-700">状态：</span>
-          <span :class="currentTestStatus.color" class="font-medium">{{ currentTestStatus.text }}</span>
-        </div>
-        <div>
-          <span class="font-medium text-gray-700">运行时间：</span>
-          <span class="text-gray-900">{{ currentTestTime || '无' }}</span>
-        </div>
-        <div>
-          <span class="font-medium text-gray-700">参数组合：</span>
-          <span class="text-gray-900">{{ currentParamCombo || '无' }}</span>
-        </div>
-        <div>
-          <span class="font-medium text-gray-700">覆盖率：</span>
-          <span class="text-gray-900">{{ currentCoverage || '0%' }}</span>
-        </div>
-        <div>
-          <span class="font-medium text-gray-700">发现Bug：</span>
-          <span class="text-gray-900">{{ currentBugCount || '0' }}</span>
-        </div>
-      </div>
-    </div>
 
     <!-- 工具栏 -->
     <div class="mb-6 space-y-4">
@@ -118,23 +85,6 @@
             </select>
           </div>
 
-          <!-- 设置范围 -->
-          <div class="w-36">
-            <select 
-              v-model="selectedValueRange" 
-              class="w-full p-2 border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-sm bg-white"
-              @change="loadParameters"
-            >
-              <option value="">所有范围</option>
-              <option 
-                v-for="range in valueRanges" 
-                :key="range" 
-                :value="range"
-              >
-                {{ range }}
-              </option>
-            </select>
-          </div>
 
           <!-- 测试状态 -->
           <div class="w-28">
@@ -203,8 +153,6 @@
               </th>
               <th class="py-3 px-4 border border-gray-300 text-left">描述</th>
               <th class="py-3 px-4 border border-gray-300 text-left">类别</th>
-              <th class="py-3 px-4 border border-gray-300 text-left">设置范围</th>
-              <th class="py-3 px-4 border border-gray-300 text-left">约束信息</th>
               <th class="py-3 px-4 border border-gray-300 text-left">默认值</th>
               <th class="py-3 px-4 border border-gray-300 text-center">权重</th>
               <th class="py-3 px-4 border border-gray-300 text-center">是否测试</th>
@@ -244,52 +192,6 @@
                 <span class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
                   {{ param.category }}
                 </span>
-              </td>
-
-              <!-- 设置范围 -->
-              <td class="py-3 px-4 border border-gray-300">
-                <span 
-                  v-if="param.valueRange"
-                  class="inline-block px-2 py-1 text-xs rounded"
-                  :class="getValueRangeClass(param.valueRange)"
-                  :title="getValueRangeTooltip(param.valueRange)"
-                >
-                  {{ param.valueRange }}
-                </span>
-                <span v-else class="text-gray-400 text-xs">-</span>
-              </td>
-
-              <!-- 约束信息 -->
-              <td class="py-3 px-4 border border-gray-300">
-                <div class="flex flex-wrap gap-1">
-                  <!-- 候选值标识 -->
-                  <span 
-                    v-if="hasCandidateValues(param)"
-                    class="inline-flex items-center px-2 py-1 text-xs bg-green-100 text-green-800 rounded cursor-help"
-                    :title="getCandidateValuesPreview(param)"
-                  >
-                    <span class="mr-1">📋</span>
-                    {{ param.candidateValues?.length || param.allowedValues?.length }} 个选项
-                  </span>
-
-                  <!-- 范围约束标识 -->
-                  <span 
-                    v-if="hasRangeConstraint(param)"
-                    class="inline-flex items-center px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded cursor-help"
-                    :title="getRangeConstraintPreview(param)"
-                  >
-                    <span class="mr-1">📏</span>
-                    范围限制
-                  </span>
-
-                  <!-- 无约束 -->
-                  <span 
-                    v-if="!hasCandidateValues(param) && !hasRangeConstraint(param)"
-                    class="text-gray-400 text-xs"
-                  >
-                    无约束
-                  </span>
-                </div>
               </td>
               
               <!-- 默认值编辑器 -->
@@ -401,7 +303,6 @@ import type {
 const parameters = ref<ParameterItem[]>([])
 const dbConfigs = ref<DatabaseConfig[]>([])
 const categories = ref<string[]>([])
-const valueRanges = ref<string[]>([])
 
 // 状态栏相关数据
 const currentTestDb = ref({
@@ -421,7 +322,6 @@ const selectedDbConfig = ref<number | ''>('')
 const selectedDatabase = ref('')
 const searchKeyword = ref('')
 const selectedCategory = ref('')
-const selectedValueRange = ref('')
 const selectedConstraintType = ref('')
 const selectedTestStatus = ref('')
 const hoveredParam = ref<number | null>(null)
@@ -432,7 +332,6 @@ const quickFilters = ref([
   { key: 'memory', label: '内存相关', category: 'MEMORY' },
   { key: 'boolean', label: '布尔类型', paramType: 'BOOLEAN' },
   { key: 'with-candidates', label: '有候选值', constraintType: 'candidates' },
-  { key: 'global', label: '全局设置', valueRange: 'Global' },
   { key: 'test-enabled', label: '启用测试', testStatus: true }
 ])
 
@@ -453,7 +352,11 @@ const saving = ref(false)
 const updatingWeights = ref<Set<number>>(new Set())
 
 // 记录首次从后端加载时的"默认状态"，用于一键恢复
-const originalParameterSnapshot = ref<Record<number, { defaultValue: string; isTestDefault: boolean; weight: number }>>({})
+// 从 localStorage 恢复之前的快照，避免页面刷新时丢失
+const originalParameterSnapshot = ref<Record<number, { defaultValue: string; isTestDefault: boolean; weight: number }>>(() => {
+  const saved = localStorage.getItem('parameterSnapshot')
+  return saved ? JSON.parse(saved) : {}
+})
 
 
 
@@ -502,13 +405,12 @@ const performAdvancedSearch = (params: ParameterItem[], searchTerm: string): Par
     // 候选值搜索
     const candidateMatch = (param.candidateValues || param.allowedValues || [])
       .some(value => value.toLowerCase().includes(term))
-    
+
     // 约束信息搜索
-    const constraintMatch = 
+    const constraintMatch =
       (param.minValue && param.minValue.includes(term)) ||
-      (param.maxValue && param.maxValue.includes(term)) ||
-      (param.valueRange && param.valueRange.toLowerCase().includes(term))
-    
+      (param.maxValue && param.maxValue.includes(term))
+
     return basicMatch || candidateMatch || constraintMatch
   })
 }
@@ -590,24 +492,24 @@ const loadDatabaseConfigs = async () => {
 // 加载参数类别
 const loadCategories = async () => {
   try {
-    categories.value = await parameterApi.getCategories()
+    // 根据当前选择的数据库类型获取类别
+    let dbTypeParam = undefined
+    if (selectedDatabase.value) {
+      const [type] = selectedDatabase.value.split('-')
+      dbTypeParam = type
+    }
+
+    categories.value = await parameterApi.getCategories(dbTypeParam)
   } catch (error) {
     console.error('加载参数类别失败:', error)
   }
 }
 
-// 加载设置范围
-const loadValueRanges = async () => {
-  try {
-    valueRanges.value = await parameterApi.getValueRanges()
-  } catch (error) {
-    console.error('加载设置范围失败:', error)
-  }
-}
 
 // 保存一份参数"默认状态"快照（仅首次记录每个参数的初始值）
 const takeParameterSnapshot = (list: ParameterItem[]) => {
   const snapshot = { ...originalParameterSnapshot.value }
+  let hasNewItems = false
   list.forEach((p) => {
     if (!snapshot[p.id]) {
       snapshot[p.id] = {
@@ -615,24 +517,44 @@ const takeParameterSnapshot = (list: ParameterItem[]) => {
         isTestDefault: p.isTestDefault,
         weight: p.weight || 5.0,
       }
+      hasNewItems = true
     }
   })
-  originalParameterSnapshot.value = snapshot
+  if (hasNewItems) {
+    originalParameterSnapshot.value = snapshot
+    // 保存到 localStorage，避免页面刷新时丢失
+    localStorage.setItem('parameterSnapshot', JSON.stringify(snapshot))
+  }
 }
 
 // 加载参数列表
 const loadParameters = async () => {
   loading.value = true
   try {
-    // 使用增强API支持valueRange筛选
-    const response = await parameterApi.getEnhancedParameters({
+    // 解析数据库类型，映射到db_parameter表中的db_type字段
+    let dbType: string | undefined
+    if (selectedDatabase.value) {
+      dbType = mapSelectedDatabaseToDbType(selectedDatabase.value)
+    }
+
+    // 使用增强API支持dbType、category和testStatus筛选
+    const params: any = {
       page: currentPage.value,
       size: pageSize.value,
       search: searchKeyword.value || undefined,
       category: selectedCategory.value || undefined,
-      valueRange: selectedValueRange.value || undefined,
-      // 暂时不传递testStatus参数，后端暂不支持
-    })
+      dbType: dbType,
+    }
+
+    // 只在选择了特定测试状态时才传递testStatus参数
+    if (selectedTestStatus.value === 'true') {
+      params.testStatus = 'true'
+    } else if (selectedTestStatus.value === 'false') {
+      params.testStatus = 'false'
+    }
+    // 如果是"全部"，不传递testStatus参数
+
+    const response = await parameterApi.getEnhancedParameters(params)
     
     // 每次从后端获取最新数据后，更新"默认状态"快照
     takeParameterSnapshot(response.content)
@@ -695,7 +617,7 @@ const saveConfiguration = async () => {
   try {
     console.log('保存配置请求数据:', requests)
     console.log('调用batchUpdateParameters前')
-    const result = await parameterApi.batchUpdateParameters(requests)
+    const result = await parameterApi.batchUpdateParameters(requests, getCurrentDbType())
     console.log('保存配置成功结果:', result)
     showMessage('保存配置成功', 'success')
     // 重新加载，确保与后端完全一致
@@ -715,7 +637,16 @@ const saveConfiguration = async () => {
   }
 }
 
-// 一键将当前所有参数恢复到“默认状态”
+// 获取当前数据库类型
+const getCurrentDbType = (): string | undefined => {
+  if (selectedDatabase.value) {
+    const [type] = selectedDatabase.value.split('-')
+    return type
+  }
+  return undefined
+}
+
+// 一键将当前所有参数恢复到"默认状态"
 const resetAllParametersToDefault = async () => {
   if (!parameters.value.length) {
     showMessage('当前没有可重置的参数', 'info')
@@ -749,7 +680,7 @@ const resetAllParametersToDefault = async () => {
 
   resetting.value = true
   try {
-    await parameterApi.batchUpdateParameters(requests)
+    await parameterApi.batchUpdateParameters(requests, getCurrentDbType())
 
     // 本地同步为快照中的默认值
     parameters.value.forEach((param) => {
@@ -837,6 +768,9 @@ const onDatabaseChange = async () => {
             return;
         }
 
+        // 重新加载类别（根据新的数据库类型）
+        await loadCategories();
+
         // 对于支持的数据库，加载参数数据
         await loadParameters();
         currentTestStatus.value = {
@@ -868,9 +802,16 @@ const getDatabaseDisplayName = (dbType: string): string => {
     return nameMap[dbType] || dbType;
 };
 
-// 检查是否支持参数数据（目前只有MySQL 9.5.0有参数数据）
+// 将前端选择的数据库值映射到db_parameter表中的db_type字段
+const mapSelectedDatabaseToDbType = (selectedValue: string): string => {
+    const [dbType, version] = selectedValue.split('-');
+    const displayName = getDatabaseDisplayName(dbType);
+    return `${displayName} (v${version})`;
+};
+
+// 检查是否支持参数数据（所有数据库都支持，通过db_type字段匹配参数）
 const isDatabaseSupported = (dbType: string, version: string): boolean => {
-    return dbType === 'mysql' && version === '9.5.0';
+    return true; // 所有数据库都支持，后端会根据db_type字段匹配参数数据
 };
 
 // 初始化状态栏（模拟从后端获取测试状态）
@@ -920,12 +861,12 @@ const updateParameterValue = async (param: ParameterItem, value: string) => {
   try {
     await parameterApi.updateParameter(param.id, {
       defaultValue: value
-    })
-    
+    }, getCurrentDbType())
+
     // 更新本地数据
     param.defaultValue = value
     showMessage('默认值编辑成功', 'success')
-    
+
   } catch (error) {
     console.error('更新参数失败:', error)
     showMessage('更新参数失败', 'error')
@@ -951,7 +892,7 @@ const updateParameterWeight = async (param: ParameterItem) => {
   const originalWeight = param.weight
   
   try {
-    await parameterApi.updateParameterWeight(param.id, weightValue)
+    await parameterApi.updateParameterWeight(param.id, weightValue, getCurrentDbType())
     showMessage('权重更新成功', 'success')
     // 更新本地权重值
     param.weight = weightValue
@@ -972,7 +913,7 @@ const updateParameterTestStatus = async (param: ParameterItem) => {
   try {
     await parameterApi.updateParameter(param.id, {
       isTestDefault: param.isTestDefault
-    })
+    }, getCurrentDbType())
     
     showMessage('测试状态更新成功', 'success')
     
@@ -1006,7 +947,6 @@ const deleteParameter = async (param: ParameterItem) => {
 const clearFilters = () => {
   searchKeyword.value = ''
   selectedCategory.value = ''
-  selectedValueRange.value = ''
   selectedConstraintType.value = ''
   selectedTestStatus.value = ''
   activeQuickFilter.value = null
@@ -1051,23 +991,6 @@ const getRangeConstraintPreview = (param: ParameterItem): string => {
   return '有范围限制'
 }
 
-const getValueRangeClass = (valueRange: string): string => {
-  const classMap: Record<string, string> = {
-    'Global': 'bg-purple-100 text-purple-800',
-    'Session': 'bg-green-100 text-green-800',
-    'Both': 'bg-yellow-100 text-yellow-800'
-  }
-  return classMap[valueRange] || 'bg-gray-100 text-gray-800'
-}
-
-const getValueRangeTooltip = (valueRange: string): string => {
-  const tooltipMap: Record<string, string> = {
-    'Global': '全局设置，影响整个MySQL服务器',
-    'Session': '会话设置，仅影响当前连接',
-    'Both': '可以设置为全局或会话级别'
-  }
-  return tooltipMap[valueRange] || valueRange
-}
 
 const filterByConstraintType = (params: ParameterItem[], constraintType: string): ParameterItem[] => {
   switch (constraintType) {
@@ -1121,18 +1044,14 @@ const applyQuickFilter = (filter: any) => {
   // 清空其他筛选条件
   searchKeyword.value = ''
   selectedCategory.value = ''
-  selectedValueRange.value = ''
   selectedConstraintType.value = ''
   selectedTestStatus.value = ''
-  
+
   // 应用快速筛选
   activeQuickFilter.value = filter.key
-  
+
   if (filter.category) {
     selectedCategory.value = filter.category
-  }
-  if (filter.valueRange) {
-    selectedValueRange.value = filter.valueRange
   }
   if (filter.constraintType) {
     selectedConstraintType.value = filter.constraintType
@@ -1158,9 +1077,6 @@ const getCategoryCount = (category: string): number => {
   return parameters.value.filter(p => p.category === category).length
 }
 
-const getValueRangeCount = (range: string): number => {
-  return parameters.value.filter(p => p.valueRange === range).length
-}
 
 const getConstraintTypeCount = (type: string): number => {
   return filterByConstraintType(parameters.value, type).length
@@ -1205,7 +1121,6 @@ onMounted(async () => {
   await Promise.all([
     loadDatabaseConfigs(),
     loadCategories(),
-    loadValueRanges(),
     loadParameters()
   ])
 })

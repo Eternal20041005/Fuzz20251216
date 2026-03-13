@@ -13,7 +13,7 @@ import type {
 } from '../types'
 
 export interface GetParametersParams extends ParameterSearchParams {
-    // 继承ParameterSearchParams接口
+    dbType?: string // 数据库类型，如 'mysql', 'postgresql'
 }
 
 export const parameterApi = {
@@ -36,13 +36,17 @@ export const parameterApi = {
     },
 
     // 更新参数
-    updateParameter(id: number, data: Omit<UpdateParameterRequest, 'id'>): Promise<ParameterItem> {
-        return api.put(`/parameters/${id}`, { id, ...data })
+    updateParameter(id: number, data: Omit<UpdateParameterRequest, 'id'>, dbType?: string): Promise<ParameterItem> {
+        const params: any = {}
+        if (dbType) params.dbType = dbType
+        return api.put(`/parameters/${id}`, { id, ...data }, { params })
     },
 
     // 批量更新参数
-    batchUpdateParameters(requests: UpdateParameterRequest[]): Promise<BatchUpdateResult> {
-        return api.put('/parameters/batch', requests)
+    batchUpdateParameters(requests: UpdateParameterRequest[], dbType?: string): Promise<BatchUpdateResult> {
+        const params: any = {}
+        if (dbType) params.dbType = dbType
+        return api.put('/parameters/batch', requests, { params })
     },
 
     // 从数据库导入参数
@@ -51,8 +55,9 @@ export const parameterApi = {
     },
 
     // 获取所有类别
-    getCategories(): Promise<string[]> {
-        return api.get('/parameters/categories')
+    getCategories(dbType?: string): Promise<string[]> {
+        const params = dbType ? `?dbType=${dbType}` : ''
+        return api.get(`/parameters/categories${params}`)
     },
 
     // 删除参数
@@ -88,10 +93,6 @@ export const parameterApi = {
         return api.get(`/parameters/${id}/constraints`)
     },
 
-    // 获取所有设置范围类型
-    getValueRanges(): Promise<string[]> {
-        return api.get('/parameters/value-ranges')
-    },
 
     // 根据设置范围筛选参数
     getParametersByValueRange(params: { page?: number; size?: number; valueRange: string }): Promise<PagedResponse<ParameterItem>> {
@@ -103,7 +104,7 @@ export const parameterApi = {
         return api.get(`/parameters/by-value-range?${searchParams.toString()}`)
     },
 
-    // 获取增强的参数列表（支持设置范围筛选）
+    // 获取增强的参数列表（支持设置范围筛选和数据库类型筛选）
     getEnhancedParameters(params: GetParametersParams = {}): Promise<PagedResponse<ParameterItem>> {
         const searchParams = new URLSearchParams()
 
@@ -112,16 +113,19 @@ export const parameterApi = {
         if (params.search) searchParams.set('search', params.search)
         if (params.category) searchParams.set('category', params.category)
         if (params.valueRange) searchParams.set('valueRange', params.valueRange)
-        // 暂时不处理testStatus参数，后端暂不支持
+        if (params.testStatus !== undefined) searchParams.set('testStatus', params.testStatus.toString())
+        if (params.dbType) searchParams.set('dbType', params.dbType)
 
         const query = searchParams.toString()
         return api.get(`/parameters/enhanced${query ? `?${query}` : ''}`)
     },
 
     // 更新参数权重
-    updateParameterWeight(id: number, weight: number): Promise<ParameterItem> {
+    updateParameterWeight(id: number, weight: number, dbType?: string): Promise<ParameterItem> {
+        const params: any = { weight }
+        if (dbType) params.dbType = dbType
         return api.put(`/parameters/${id}/weight`, {}, {
-            params: { weight }
+            params
         })
     }
 }

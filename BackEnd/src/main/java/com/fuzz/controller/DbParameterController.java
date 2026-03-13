@@ -39,7 +39,7 @@ public class DbParameterController {
     @GetMapping("/current-test-database")
     public ResponseEntity<List<DbParameter>> getCurrentTestDatabaseParameters() {
         logger.info("获取当前测试数据库参数");
-        List<DbParameter> testParameters = dbParameterRepository.findByIsTest(true);
+        List<DbParameter> testParameters = dbParameterRepository.findByIsTestTrue();
         return ResponseEntity.ok(testParameters);
     }
 

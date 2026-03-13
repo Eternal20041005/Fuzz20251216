@@ -1,2 +1,3 @@
+sqlancer\TestMySQLFuzzing.class
 com\fuzz\FuzzBackendApplicationTests.class
 com\fuzz\service\ParameterServiceTest.class

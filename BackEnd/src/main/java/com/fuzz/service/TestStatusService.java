@@ -52,20 +52,8 @@ public class TestStatusService {
                 while (isTesting) {
                     try {
                         Thread.sleep(1000);
-                        runTime++;
 
-                        // 模拟测试数据（你的原有逻辑）
-                        String paramCombo = runTime >= 5 ? "foreign_key_checks=OFF;bulk_insert_buffer_size=100" : "无";
-                        double coverage = runTime * 0.1;
-                        int bugCount = runTime >= 10 ? 2 : 0;
-                        int executionCount = runTime * 50;
 
-                        // 更新数据库（你的原有逻辑）
-                        jdbcTemplate.update(
-                                "UPDATE test_status SET run_time=?, coverage_rate=?, bug_count=?, execution_count=?, current_param_combo=? " +
-                                "WHERE task_status='测试中'",
-                                runTime, coverage, bugCount, executionCount, paramCombo
-                        );
 
                         // 新增：每次更新后，通过WebSocket推送最新状态到前端
                         Map<String, Object> latestStatus = getLatestStatus();

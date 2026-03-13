@@ -1,20 +1,30 @@
 package com.fuzz.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Size;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
  * 数据库参数实体类
+ * 支持多种数据库的参数配置信息
  */
 @Entity
-@Table(name = "db_parameter")
+@Table(name = "db_parameter",
+       uniqueConstraints = @UniqueConstraint(columnNames = {"db_type", "param_name"}))
 public class DbParameter {
+
+    private static final Logger logger = LoggerFactory.getLogger(DbParameter.class);
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
     private Long id;
 
     @NotBlank(message = "数据库类型不能为空")
@@ -22,8 +32,8 @@ public class DbParameter {
     @Column(name = "db_type", nullable = false, length = 20)
     private String dbType;
 
-    @NotBlank(message = "参数名称不能为空")
-    @Size(max = 100, message = "参数名称长度不能超过100个字符")
+    @NotBlank(message = "参数名不能为空")
+    @Size(max = 100, message = "参数名长度不能超过100个字符")
     @Column(name = "param_name", nullable = false, length = 100)
     private String paramName;
 
@@ -32,7 +42,6 @@ public class DbParameter {
     @Column(name = "param_type", nullable = false, length = 20)
     private String paramType;
 
-    @Lob
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
@@ -45,21 +54,25 @@ public class DbParameter {
     private String valueRange;
 
     @NotNull(message = "权重不能为空")
-    @DecimalMin(value = "0.0", message = "权重不能小于0")
-    @DecimalMax(value = "1.0", message = "权重不能大于1")
+    @DecimalMin(value = "0.0000", message = "权重不能小于0")
+    @DecimalMax(value = "10.0000", message = "权重不能大于10")
     @Column(name = "weight", nullable = false, precision = 10, scale = 4)
-    private BigDecimal weight;
+    private BigDecimal weight = new BigDecimal("5.0000");
+
+    @Column(name = "coverage", precision = 5, scale = 2)
+    private BigDecimal coverage = new BigDecimal("0.00");
 
     @NotNull(message = "是否测试不能为空")
     @Column(name = "is_test", nullable = false)
-    private Boolean isTest;
+    private Boolean isTest = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // JPA生命周期回调
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -71,7 +84,23 @@ public class DbParameter {
         updatedAt = LocalDateTime.now();
     }
 
-    // getter and setter methods
+    // 构造函数
+    public DbParameter() {
+    }
+
+    public DbParameter(String dbType, String paramName, String paramType, String description,
+                      String defaultValue, String valueRange, BigDecimal weight, Boolean isTest) {
+        this.dbType = dbType;
+        this.paramName = paramName;
+        this.paramType = paramType;
+        this.description = description;
+        this.defaultValue = defaultValue;
+        this.valueRange = valueRange;
+        this.weight = weight != null ? weight : new BigDecimal("5.0000");
+        this.isTest = isTest != null ? isTest : false;
+    }
+
+    // Getter和Setter方法
     public Long getId() {
         return id;
     }
@@ -136,6 +165,14 @@ public class DbParameter {
         this.weight = weight;
     }
 
+    public BigDecimal getCoverage() {
+        return coverage;
+    }
+
+    public void setCoverage(BigDecimal coverage) {
+        this.coverage = coverage;
+    }
+
     public Boolean getIsTest() {
         return isTest;
     }
@@ -158,5 +195,38 @@ public class DbParameter {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "DbParameter{" +
+                "id=" + id +
+                ", dbType='" + dbType + '\'' +
+                ", paramName='" + paramName + '\'' +
+                ", paramType='" + paramType + '\'' +
+                ", description='" + description + '\'' +
+                ", defaultValue='" + defaultValue + '\'' +
+                ", valueRange='" + valueRange + '\'' +
+                ", weight=" + weight +
+                ", isTest=" + isTest +
+                ", createdAt=" + createdAt +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DbParameter that = (DbParameter) o;
+        return dbType != null ? dbType.equals(that.dbType) : that.dbType == null &&
+               paramName != null ? paramName.equals(that.paramName) : that.paramName == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = dbType != null ? dbType.hashCode() : 0;
+        result = 31 * result + (paramName != null ? paramName.hashCode() : 0);
+        return result;
     }
 }
